@@ -7,7 +7,7 @@ include "../../conf/std.nodebug"
 
 makeoptions	DEBUG=-g		# Build kernel with gdb(1) debug symbols
 makeoptions	WITH_CTF=1		# Run ctfconvert(1) for DTrace support
-makeoptions	MODULES_OVERRIDE="crypto cryptodev zfs kgssapi_krb5 kgssapi rc4 filemon"
+makeoptions	MODULES_OVERRIDE="acl_nfsv4 crypto cryptodev zfs kgssapi_krb5 kgssapi rc4 filemon"
 
 options 	SCHED_ULE		# ULE scheduler
 options 	PREEMPTION		# Enable kernel thread preemption
