@@ -15,6 +15,8 @@ options 	INET			# InterNETworking
 options 	INET6			# IPv6 communications protocols
 options 	SCTP_SUPPORT		# Allow kldload of SCTP
 options 	GEOM_LABEL		# Provides labelization
+# COMPAT_FREEBSD32 is required for linux.ko which is required for poudriere
+options		COMPAT_FREEBSD32
 # COMPAT_FREEBSD11 is required for Go
 options 	COMPAT_FREEBSD11	# Compatible with FreeBSD11
 options 	COMPAT_FREEBSD12	# Compatible with FreeBSD12
