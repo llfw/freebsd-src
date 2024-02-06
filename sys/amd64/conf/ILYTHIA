@@ -49,6 +49,9 @@ options 	SMP			# Symmetric MultiProcessor Kernel
 # CPU frequency control
 device		cpufreq
 
+# LinuxKPI requires firmware
+device		firmware
+
 # Bus support.
 device		acpi
 options		IOMMU
@@ -68,3 +71,5 @@ device		kbdmux
 options		EVDEV_SUPPORT
 options		VIMAGE
 options		KBD_INSTALL_CDEV
+# evdev has to be in the kernel when EVDEV_SUPPORT is set or the build fails
+device		evdev
