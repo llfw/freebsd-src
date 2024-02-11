@@ -7,7 +7,6 @@ include "../../conf/std.nodebug"
 
 makeoptions	DEBUG=-g		# Build kernel with gdb(1) debug symbols
 makeoptions	WITH_CTF=1		# Run ctfconvert(1) for DTrace support
-#makeoptions	MODULES_OVERRIDE="xdr acl_nfs4 crypto cryptodev zfs kgssapi_krb5 kgssapi rc4 filemon"
 
 options 	SCHED_ULE		# ULE scheduler
 options 	PREEMPTION		# Enable kernel thread preemption
@@ -37,30 +36,14 @@ options 	KDTRACE_HOOKS		# Kernel DTrace hooks
 options 	DDB_CTF			# Kernel ELF linker loads CTF data
 options 	INCLUDE_CONFIG_FILE	# Include this file in kernel
 
-# Debugging support.  Always need this:
 options 	KDB			# Enable kernel debugger support.
 options 	KDB_TRACE		# Print a stack trace for a panic.
 
-# Make an SMP-capable kernel by default
 options 	SMP			# Symmetric MultiProcessor Kernel
 
-# CPU frequency control
-device		cpufreq
-
-# Bus support.
 device		acpi
 device		pci
 
-device		uart			# Generic UART driver
-
 device		loop			# Network loopback
-device		rdrand_rng		# Intel Bull Mountain RNG
 device		ether			# Ethernet support
-
 device		bpf			# Berkeley packet filter
-
-device		virtio			# Generic VirtIO bus (required)
-device		virtio_pci		# VirtIO PCI device
-device		vtnet			# VirtIO Ethernet device
-device		virtio_blk		# VirtIO Block device
-device		virtio_balloon		# VirtIO Memory Balloon device
