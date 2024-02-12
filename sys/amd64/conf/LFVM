@@ -35,6 +35,10 @@ options 	KDTRACE_FRAME		# Ensure frames are compiled in
 options 	KDTRACE_HOOKS		# Kernel DTrace hooks
 options 	DDB_CTF			# Kernel ELF linker loads CTF data
 options 	INCLUDE_CONFIG_FILE	# Include this file in kernel
+options         SOFTUPDATES             # Enable FFS soft updates support
+options         UFS_ACL                 # Support for access control lists
+options         UFS_DIRHASH             # Improve performance on big directories
+
 
 options 	KDB			# Enable kernel debugger support.
 options 	KDB_TRACE		# Print a stack trace for a panic.
