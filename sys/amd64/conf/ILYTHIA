@@ -44,6 +44,8 @@ options 	KDB_TRACE		# Print a stack trace for a panic.
 options		KDB_UNATTENDED
 options		ALT_BREAK_TO_DEBUGGER
 
+options		DEADLKRES
+
 # Make an SMP-capable kernel by default
 options 	SMP			# Symmetric MultiProcessor Kernel
 
