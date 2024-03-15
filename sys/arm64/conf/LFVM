@@ -84,8 +84,6 @@ device		da
 device		cd			# CD
 device		pass			# Passthrough device (direct ATA/SCSI access)
 
-device		armv8crypto		# ARMv8 OpenCrypto module
-
 device		uart			# Generic UART driver
 
 device		crypto			# core crypto support
