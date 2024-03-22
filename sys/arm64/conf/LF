@@ -1,0 +1,68 @@
+# LF kernel for generic ARM systems.
+
+cpu		ARM64
+ident		LF
+
+include		"std.arm64"
+include		"std.dev"
+
+# Include SoC specific configuration
+#include		"std.al"
+#include		"std.allwinner"
+#include		"std.altera"
+#include		"std.amd"
+include		"std.apple"
+include		"std.arm"
+#include		"std.azure"
+include		"std.broadcom"
+#include		"std.cavium"
+#include		"std.ec2"
+#include		"std.hyperv"
+#include		"std.hisilicon"
+#include		"std.imx"
+#include		"std.marvell"
+#include		"std.nvidia"
+#include		"std.nxp"
+#include		"std.qcom"
+#include		"std.rockchip"
+include		"std.virt"
+#include		"std.xilinx"
+
+options 	MMCCAM
+options 	CAMDEBUG
+
+nodevice	mmc
+nodevice	mmcsd
+
+options 	MMCCAM
+options 	CAMDEBUG
+
+nodevice	mmc
+nodevice	mmcsd
+
+#nooptions	INVARIANTS
+#nooptions	INVARIANT_SUPPORT
+#nooptions	DIAGNOSTIC
+#nooptions	WITNESS
+#nooptions	WITNESS_SKIPSPIN
+#nooptions	DEBUG_VFS_LOCKS
+#nooptions	BUF_TRACKING
+#nooptions	FULL_BUF_TRACKING
+#nooptions	DEADLKRES
+#nooptions	COVERAGE
+#nooptions	KCOV
+#nooptions	MALLOC_DEBUG_MAXZONES
+#nooptions	QUEUE_MACRO_DEBUG_TRASH
+
+# Net80211 debugging
+#nooptions	IEEE80211_DEBUG
+
+# USB debugging
+#nooptions	USB_DEBUG
+#nooptions	HID_DEBUG
+
+# CAM debugging
+#nooptions	CAMDEBUG
+#nooptions	CAM_DEBUG_FLAGS
+
+
