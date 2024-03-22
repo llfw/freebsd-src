@@ -162,42 +162,29 @@ device		regulator
 device		syscon
 
 # EVDEV support
-device		evdev			# input event device support
-options 	EVDEV_SUPPORT		# evdev support in legacy drivers
-device		uinput			# install /dev/uinput cdev
+#device		evdev			# input event device support
+#options 	EVDEV_SUPPORT		# evdev support in legacy drivers
+#device		uinput			# install /dev/uinput cdev
 
-# PCI/PCI-X/PCIe Ethernet NICs that use iflib infrastructure
-#device		iflib
-#device		em			# Intel PRO/1000 Gigabit Ethernet Family
-#device		ix			# Intel 10Gb Ethernet Family
-
-# Ethernet NICs
-#device		mdio
-#device		mii
-#device		miibus			# MII bus support
-
-# The `bpf' device enables the Berkeley Packet Filter.
-# Be aware of the administrative consequences of enabling this!
-# Note that 'bpf' is required for DHCP.
 device		bpf		# Berkeley packet filter
 
 # Netmap provides direct access to TX/RX rings on supported NICs
 device		netmap			# netmap(4) support
 
 # USB support
-options 	USB_DEBUG		# enable debug msgs
+#options 	USB_DEBUG		# enable debug msgs
 options 	USB_HOST_ALIGN=64	# Align usb buffers to cache line size.
-device		ohci			# OHCI USB interface
-device		uhci			# UHCI USB interface
-device		ehci			# EHCI USB interface (USB 2.0)
-device		xhci			# XHCI USB interface (USB 3.0)
+#device		ohci			# OHCI USB interface
+#device		uhci			# UHCI USB interface
+#device		ehci			# EHCI USB interface (USB 2.0)
+#device		xhci			# XHCI USB interface (USB 3.0)
 device		usb			# USB Bus (required)
-device		ukbd			# Keyboard
-device		umass			# Disks/Mass storage - Requires scbus and da
+#device		ukbd			# Keyboard
+#device		umass			# Disks/Mass storage - Requires scbus and da
 
 # HID support
-options 	HID_DEBUG		# enable debug msgs
-device		hid			# Generic HID support
+#options 	HID_DEBUG		# enable debug msgs
+#device		hid			# Generic HID support
 
 # Firmware
 device		mmio_sram		# Generic on-chip SRAM
