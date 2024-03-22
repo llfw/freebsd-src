@@ -8,7 +8,7 @@ makeoptions	DEBUG=-g		# Build kernel with gdb(1) debug symbols
 makeoptions	WITH_CTF=1		# Run ctfconvert(1) for DTrace support
 
 options 	SCHED_ULE		# ULE scheduler
-options 	NUMA			# Non-Uniform Memory Architecture support
+#options 	NUMA			# Non-Uniform Memory Architecture support
 options 	PREEMPTION		# Enable kernel thread preemption
 options 	VIMAGE			# Subsystem virtualization, e.g. VNET
 options 	INET			# InterNETworking
@@ -23,23 +23,11 @@ options 	TCP_HHOOK		# hhook(9) framework for TCP
 options 	TCP_RFC7413		# TCP Fast Open
 options 	SCTP_SUPPORT		# Allow kldload of SCTP
 options 	KERN_TLS		# TLS transmit & receive offload
-options 	FFS			# Berkeley Fast Filesystem
+#options 	FFS			# Berkeley Fast Filesystem
 options 	SOFTUPDATES		# Enable FFS soft updates support
 options 	UFS_ACL			# Support for access control lists
 options 	UFS_DIRHASH		# Improve performance on big directories
 options 	UFS_GJOURNAL		# Enable gjournal-based UFS journaling
-options 	QUOTA			# Enable disk quotas for UFS
-options 	MD_ROOT			# MD is a potential root device
-options 	NFSCL			# Network Filesystem Client
-options 	NFSD			# Network Filesystem Server
-options 	NFSLOCKD		# Network Lock Manager
-options 	NFS_ROOT		# NFS usable as /, requires NFSCL
-options 	MSDOSFS			# MSDOS Filesystem
-options 	CD9660			# ISO 9660 Filesystem
-options 	PROCFS			# Process filesystem (requires PSEUDOFS)
-options 	PSEUDOFS		# Pseudo-filesystem framework
-options 	TMPFS			# Efficient memory filesystem
-options 	GEOM_RAID		# Soft RAID functionality.
 options 	GEOM_LABEL		# Provides labelization
 options 	EFIRT			# EFI Runtime Services support
 options 	COMPAT_FREEBSD32	# Compatible with FreeBSD/arm
@@ -74,18 +62,19 @@ options 	PERTHREAD_SSP		# Per-thread SSP canary
 
 # Debugging support.  Always need this:
 options 	KDB			# Enable kernel debugger support.
+options 	KDB_UNATTENDED
 options 	KDB_TRACE		# Print a stack trace for a panic.
 # For full debugger support use (turn off in stable branch):
-options 	DDB			# Support DDB.
-options 	GDB			# Support remote GDB.
+#options 	DDB			# Support DDB.
+#options 	GDB			# Support remote GDB.
 options 	DEADLKRES		# Enable the deadlock resolver
 options 	INVARIANTS		# Enable calls of extra sanity checking
 options 	INVARIANT_SUPPORT	# Extra sanity checks of internal structures, required by INVARIANTS
 options 	WITNESS			# Enable checks to detect deadlocks and cycles
 options 	WITNESS_SKIPSPIN	# Don't run witness on spinlocks for speed
-options 	MALLOC_DEBUG_MAXZONES=8	# Separate malloc(9) zones
-options 	ALT_BREAK_TO_DEBUGGER	# Enter debugger on keyboard escape sequence
-options 	VERBOSE_SYSINIT=0	# Support debug.verbose_sysinit, off by default
+#options 	MALLOC_DEBUG_MAXZONES=8	# Separate malloc(9) zones
+#options 	ALT_BREAK_TO_DEBUGGER	# Enter debugger on keyboard escape sequence
+#options 	VERBOSE_SYSINIT=0	# Support debug.verbose_sysinit, off by default
 
 # Kernel Sanitizers
 #options 	COVERAGE		# Generic kernel coverage. Used by KCOV
@@ -104,11 +93,6 @@ options 	ZSTDIO			# zstd-compressed kernel and user dumps
 # Make an SMP-capable kernel by default
 options 	SMP			# Symmetric MultiProcessor Kernel
 
-# Enable support for the kernel PLL to use an external PPS signal,
-# under supervision of [x]ntpd(8)
-# More info in ntpd documentation: http://www.eecis.udel.edu/~ntp
-
-
 # Bus drivers
 device		pci
 options 	PCI_HP			# PCI-Express native HotPlug
@@ -118,7 +102,6 @@ options 	PCI_IOV			# PCI SR-IOV support
 device		cpufreq
 
 # Block devices
-device		ahci
 device		scbus
 device		da
 
@@ -126,7 +109,6 @@ device		da
 device		cd			# CD
 device		pass			# Passthrough device (direct ATA/SCSI access)
 
-# NVM Express (NVMe) support
 device		nvme			# base NVMe driver
 options 	NVME_USE_NVD=0		# prefer the cam(4) based nda(4) driver
 device		nvd			# expose NVMe namespaces as disks, depends on nvme
@@ -138,13 +120,13 @@ device		fdt_pinctrl
 device		gpioregulator
 
 # I2C
-device		iicbus
-device		iicmux
-device		iic
-device		icee			# Generic IIC eeprom
+#device		iicbus
+#device		iicmux
+#device		iic
+#device		icee			# Generic IIC eeprom
 
 # Crypto accelerators
-device		armv8crypto		# ARMv8 OpenCrypto module
+#device		armv8crypto		# ARMv8 OpenCrypto module
 
 # SPI
 device		spibus
@@ -167,10 +149,10 @@ device		crypto			# core crypto support
 device		armv8_rng		# Armv8.5 rndr RNG
 device		loop			# Network loopback
 device		ether			# Ethernet support
-device		vlan			# 802.1Q VLAN support
-device		tuntap			# Packet tunnel.
-device		md			# Memory "disks"
-device		gif			# IPv6 and IPv4 tunneling
+#device		vlan			# 802.1Q VLAN support
+#device		tuntap			# Packet tunnel.
+#device		md			# Memory "disks"
+#device		gif			# IPv6 and IPv4 tunneling
 device		firmware		# firmware assist module
 device		clk
 device		phy
@@ -185,14 +167,14 @@ options 	EVDEV_SUPPORT		# evdev support in legacy drivers
 device		uinput			# install /dev/uinput cdev
 
 # PCI/PCI-X/PCIe Ethernet NICs that use iflib infrastructure
-device		iflib
-device		em			# Intel PRO/1000 Gigabit Ethernet Family
-device		ix			# Intel 10Gb Ethernet Family
+#device		iflib
+#device		em			# Intel PRO/1000 Gigabit Ethernet Family
+#device		ix			# Intel 10Gb Ethernet Family
 
 # Ethernet NICs
-device		mdio
-device		mii
-device		miibus			# MII bus support
+#device		mdio
+#device		mii
+#device		miibus			# MII bus support
 
 # The `bpf' device enables the Berkeley Packet Filter.
 # Be aware of the administrative consequences of enabling this!
@@ -223,7 +205,6 @@ device		mmio_sram		# Generic on-chip SRAM
 options 	SOC_APPLE_T8103
 #options 	IOMMU
 options 	FDT
-device		bge
 
 #device		pci_n1sdp		# ARM Neoverse N1 SDP PCI
 device		pl061			# Arm PL061 GPIO controller
@@ -233,6 +214,7 @@ device		scmi			# System Control Management Interface
 device		arm_doorbell		# ARM Message Handling Unit (MHU)
 options 	FDT
 device		acpi
+device		acpi_ged
 
 # SoC support
 options 	SOC_BRCM_BCM2837
@@ -241,22 +223,10 @@ options 	SOC_BRCM_NS2
 device		bcm2835_bsc		# Broadcom BCM283x I2C bus
 device		bcm2835_spi		# Broadcom BCM283x SPI bus
 device		uart_mu			# RPI3 aux port
-device		pl011
-device		genet			# Broadcom on RPi4
+#device		genet			# Broadcom on RPi4
 device		dwcotg
-device		muge
-device		smsc
 device		sdhci
-options 	FDT
-device		acpi
 makeoptions	MODULES_EXTRA+="dtb/rpi"
-
-device		pvscsi			# VMware PVSCSI
-device		pl061			# Arm PL061 GPIO controller
-device		pl011
-options 	FDT
-device		acpi
-device		acpi_ged
 
 options 	MMCCAM
 options 	CAMDEBUG
@@ -292,4 +262,5 @@ options 	CAMDEBUG
 #nooptions	CAMDEBUG
 #nooptions	CAM_DEBUG_FLAGS
 
-
+device		iicbus
+device		mdio
