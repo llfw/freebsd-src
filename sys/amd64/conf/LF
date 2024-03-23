@@ -12,7 +12,9 @@ options 	SCHED_ULE		# ULE scheduler
 options 	PREEMPTION		# Enable kernel thread preemption
 options 	INET			# InterNETworking
 options 	INET6			# IPv6 communications protocols
+options		TCP_OFFLOAD
 options 	SCTP_SUPPORT		# Allow kldload of SCTP
+options		VIMAGE
 options 	GEOM_LABEL		# Provides labelization
 # COMPAT_FREEBSD32 is required for linux.ko which is required for poudriere
 options		COMPAT_FREEBSD32
@@ -39,16 +41,30 @@ options         SOFTUPDATES             # Enable FFS soft updates support
 options         UFS_ACL                 # Support for access control lists
 options         UFS_DIRHASH             # Improve performance on big directories
 
-
-options 	KDB			# Enable kernel debugger support.
-options 	KDB_TRACE		# Print a stack trace for a panic.
+options 	KDB
+options 	KDB_TRACE
+options 	KDB_UNATTENDED
+options		ALT_BREAK_TO_DEBUGGER
 
 options 	SMP			# Symmetric MultiProcessor Kernel
 
 device		acpi
+options		IOMMU
 device		pci
 device		uart
 
 device		loop			# Network loopback
 device		ether			# Ethernet support
 device		bpf			# Berkeley packet filter
+
+# LinuxKPI requires firmware
+device		firmware
+
+# System console
+device		vt
+device		vt_efifb
+device		kbdmux
+options		EVDEV_SUPPORT
+options		KBD_INSTALL_CDEV
+# evdev has to be in the kernel when EVDEV_SUPPORT is set or the build fails
+device		evdev
