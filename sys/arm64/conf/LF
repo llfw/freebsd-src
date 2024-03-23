@@ -149,10 +149,6 @@ device		crypto			# core crypto support
 device		armv8_rng		# Armv8.5 rndr RNG
 device		loop			# Network loopback
 device		ether			# Ethernet support
-#device		vlan			# 802.1Q VLAN support
-#device		tuntap			# Packet tunnel.
-#device		md			# Memory "disks"
-#device		gif			# IPv6 and IPv4 tunneling
 device		firmware		# firmware assist module
 device		clk
 device		phy
@@ -161,18 +157,11 @@ device		nvmem
 device		regulator
 device		syscon
 
-# EVDEV support
-#device		evdev			# input event device support
-#options 	EVDEV_SUPPORT		# evdev support in legacy drivers
-#device		uinput			# install /dev/uinput cdev
-
 device		bpf		# Berkeley packet filter
 
-# Netmap provides direct access to TX/RX rings on supported NICs
 device		netmap			# netmap(4) support
 
 # USB support
-#options 	USB_DEBUG		# enable debug msgs
 options 	USB_HOST_ALIGN=64	# Align usb buffers to cache line size.
 #device		ohci			# OHCI USB interface
 #device		uhci			# UHCI USB interface
@@ -220,23 +209,6 @@ options 	CAMDEBUG
 
 nodevice	mmc
 nodevice	mmcsd
-
-options 	MMCCAM
-options 	CAMDEBUG
-
-#nooptions	INVARIANTS
-#nooptions	INVARIANT_SUPPORT
-#nooptions	DIAGNOSTIC
-#nooptions	WITNESS
-#nooptions	WITNESS_SKIPSPIN
-#nooptions	DEBUG_VFS_LOCKS
-#nooptions	BUF_TRACKING
-#nooptions	FULL_BUF_TRACKING
-#nooptions	DEADLKRES
-#nooptions	COVERAGE
-#nooptions	KCOV
-#nooptions	MALLOC_DEBUG_MAXZONES
-#nooptions	QUEUE_MACRO_DEBUG_TRASH
 
 # Net80211 debugging
 #nooptions	IEEE80211_DEBUG
