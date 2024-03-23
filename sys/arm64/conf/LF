@@ -109,9 +109,9 @@ device		da
 device		cd			# CD
 device		pass			# Passthrough device (direct ATA/SCSI access)
 
-device		nvme			# base NVMe driver
+#device		nvme			# base NVMe driver
 options 	NVME_USE_NVD=0		# prefer the cam(4) based nda(4) driver
-device		nvd			# expose NVMe namespaces as disks, depends on nvme
+#device		nvd			# expose NVMe namespaces as disks, depends on nvme
 
 # GPIO / PINCTRL
 device		gpio
