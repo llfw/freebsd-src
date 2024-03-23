@@ -199,13 +199,12 @@ options 	SOC_BRCM_NS2
 device		bcm2835_bsc		# Broadcom BCM283x I2C bus
 device		bcm2835_spi		# Broadcom BCM283x SPI bus
 device		uart_mu			# RPI3 aux port
-#device		genet			# Broadcom on RPi4
 device		dwcotg
 device		sdhci
 makeoptions	MODULES_EXTRA+="dtb/rpi"
 
 options 	MMCCAM
-options 	CAMDEBUG
+#options 	CAMDEBUG
 
 nodevice	mmc
 nodevice	mmcsd
