@@ -1,7 +1,7 @@
-# le-fay.org vm (bhyve) kernel - based on MINIMAL
+# le-fay.org standard kernel - based on MINIMAL
 
 cpu		HAMMER
-ident		LFVM
+ident		LF
 
 include "../../conf/std.nodebug"
 
