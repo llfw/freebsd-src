@@ -166,7 +166,7 @@ options 	USB_HOST_ALIGN=64	# Align usb buffers to cache line size.
 #device		ohci			# OHCI USB interface
 #device		uhci			# UHCI USB interface
 #device		ehci			# EHCI USB interface (USB 2.0)
-#device		xhci			# XHCI USB interface (USB 3.0)
+device		xhci			# XHCI USB interface (USB 3.0)
 device		usb			# USB Bus (required)
 #device		ukbd			# Keyboard
 #device		umass			# Disks/Mass storage - Requires scbus and da
