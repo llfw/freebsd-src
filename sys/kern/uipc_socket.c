@@ -922,6 +922,10 @@ sopeeloff(struct socket *head)
 	so->so_snd.sb_timeo = head->so_snd.sb_timeo;
 	so->so_rcv.sb_flags |= head->so_rcv.sb_flags & SB_AUTOSIZE;
 	so->so_snd.sb_flags |= head->so_snd.sb_flags & SB_AUTOSIZE;
+	if ((so->so_proto->pr_flags & PR_SOCKBUF) == 0) {
+		so->so_snd.sb_mtx = &so->so_snd_mtx;
+		so->so_rcv.sb_mtx = &so->so_rcv_mtx;
+	}
 
 	soref(so);
 
@@ -2869,13 +2873,10 @@ soreceive_dgram(struct socket *so, struct sockaddr **psa, struct uio *uio,
 		    ("m->m_type == %d", m->m_type));
 		if (psa != NULL)
 			*psa = sodupsockaddr(mtod(m, struct sockaddr *),
-			    M_NOWAIT);
+			    M_WAITOK);
 		m = m_free(m);
 	}
-	if (m == NULL) {
-		/* XXXRW: Can this happen? */
-		return (0);
-	}
+	KASSERT(m, ("%s: no data or control after soname", __func__));
 
 	/*
 	 * Packet to copyout() is now in 'm' and it is disconnected from the

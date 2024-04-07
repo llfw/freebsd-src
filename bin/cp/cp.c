@@ -340,7 +340,7 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 			 * noexist/dir/foo (where foo is a file in dir), which
 			 * is the case where the target exists.
 			 *
-			 * Also, check for "..".  This is for the correct path
+			 * Also, check for "..".  This is for correct path
 			 * concatenation for paths ending in "..", e.g.
 			 *	cp -R .. /tmp
 			 * Paths ending in ".." are changed to ".".  This is
@@ -506,9 +506,13 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 			 * umask blocks owner writes, we fail.
 			 */
 			if (dne) {
-				if (mkdir(to.p_path,
-				    curr->fts_statp->st_mode | S_IRWXU) < 0)
-					err(1, "%s", to.p_path);
+				mode = curr->fts_statp->st_mode | S_IRWXU;
+				if (mkdir(to.p_path, mode) != 0) {
+					warn("%s", to.p_path);
+					(void)fts_set(ftsp, curr, FTS_SKIP);
+					badcp = rval = 1;
+					break;
+				}
 				/*
 				 * First DNE with a NULL root_stat is the root
 				 * path, so set root_stat.  We can't really
@@ -517,14 +521,19 @@ copy(char *argv[], enum op type, int fts_options, struct stat *root_stat)
 				 * first directory we created and use that.
 				 */
 				if (root_stat == NULL &&
-				    stat(to.p_path, &created_root_stat) == -1) {
-					err(1, "stat");
-				} else if (root_stat == NULL) {
-					root_stat = &created_root_stat;
+				    stat(to.p_path, &created_root_stat) != 0) {
+					warn("%s", to.p_path);
+					(void)fts_set(ftsp, curr, FTS_SKIP);
+					badcp = rval = 1;
+					break;
 				}
+				if (root_stat == NULL)
+					root_stat = &created_root_stat;
 			} else if (!S_ISDIR(to_stat.st_mode)) {
-				errno = ENOTDIR;
-				err(1, "%s", to.p_path);
+				warnc(ENOTDIR, "%s", to.p_path);
+				(void)fts_set(ftsp, curr, FTS_SKIP);
+				badcp = rval = 1;
+				break;
 			}
 			/*
 			 * Arrange to correct directory attributes later
