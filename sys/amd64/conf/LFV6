@@ -6,6 +6,3 @@ ident		LFV6
 include "LF"
 
 nooptions	INET
-
-# ipfw requires INET
-makeoptions	WITHOUT_MODULES+="ipfw"
