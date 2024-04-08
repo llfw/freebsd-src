@@ -31,9 +31,6 @@
 
 #include "opt_ipfw.h"
 #include "opt_inet.h"
-#ifndef INET
-#error IPFIREWALL requires INET.
-#endif /* INET */
 #include "opt_inet6.h"
 
 #include <sys/param.h>
