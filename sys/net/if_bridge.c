@@ -3393,6 +3393,10 @@ bridge_pfil(struct mbuf **mp, struct ifnet *bifp, struct ifnet *ifp, int dir)
 	struct llc llc1;
 	u_int16_t ether_type;
 	pfil_return_t rv;
+#ifdef INET
+	struct ip *ip = NULL;
+	int hlen = 0;
+#endif
 
 	snap = 0;
 	error = -1;	/* Default error if not error == 0 */
