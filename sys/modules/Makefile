@@ -291,9 +291,9 @@ SUBDIR=	\
 	nmdm \
 	nullfs \
 	${_ntb} \
-	${_nvd} \
+	nvd \
 	${_nvdimm} \
-	${_nvme} \
+	nvme \
 	${_nvram} \
 	oce \
 	${_ocs_fc} \
@@ -889,8 +889,6 @@ _cfi=		cfi
 _cpufreq=	cpufreq
 _exca=		exca
 _ffec=		ffec
-_nvd=		nvd
-_nvme=		nvme
 .endif
 
 .if ${MACHINE_ARCH:Mpowerpc64*} != ""
