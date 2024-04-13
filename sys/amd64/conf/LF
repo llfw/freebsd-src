@@ -41,6 +41,7 @@ options 	INCLUDE_CONFIG_FILE
 options		SOFTUPDATES
 options		UFS_ACL
 options		UFS_DIRHASH
+options		IPSEC_SUPPORT
 
 options 	KDB
 options 	KDB_TRACE
