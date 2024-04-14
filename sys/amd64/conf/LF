@@ -41,6 +41,9 @@ options 	INCLUDE_CONFIG_FILE
 options		SOFTUPDATES
 options		UFS_ACL
 options		UFS_DIRHASH
+
+# IPSEC_SUPPORT requires device crypto
+device		crypto
 options		IPSEC_SUPPORT
 
 options 	KDB
