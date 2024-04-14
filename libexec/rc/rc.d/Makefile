@@ -278,7 +278,9 @@ _nscd=		nscd
 .endif
 
 .if ${MK_NTP} != "no"
-CONFS+=		ntpd
+CONFGROUPS+=	NTP
+NTP+=		ntpd
+NTPPACKAGE=	ntp
 .endif
 
 .if ${MK_OFED} != "no"
