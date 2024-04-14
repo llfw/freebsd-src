@@ -3651,7 +3651,6 @@ bad:
  * XXX Right now we update ipstat but not
  * XXX csum_counter.
  */
-#ifdef INET
 static int
 bridge_ip_checkbasic(struct mbuf **mp)
 {
@@ -3802,7 +3801,6 @@ bad:
  *
  *	Fragment mbuf chain in multiple packets and prepend ethernet header.
  */
-#ifdef INET
 static int
 bridge_fragment(struct ifnet *ifp, struct mbuf **mp, struct ether_header *eh,
     int snap, struct llc *llc)
