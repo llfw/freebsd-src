@@ -3561,8 +3561,8 @@ bridge_pfil(struct mbuf **mp, struct ifnet *bifp, struct ifnet *ifp, int dir)
 		}
 
 		/* Recalculate the ip checksum. */
-		struct ip *ip = mtod(*mp, struct ip *);
-		int hlen = ip->ip_hl << 2;
+		ip *ip = mtod(*mp, struct ip *);
+		hlen = ip->ip_hl << 2;
 		if (hlen < sizeof(struct ip))
 			goto bad;
 		if (hlen > (*mp)->m_len) {
