@@ -68,7 +68,6 @@ CONFS=	DAEMON \
 	nfsuserd \
 	nisdomain \
 	${_nscd} \
-	ntpdate \
 	${_opensm} \
 	os-release \
 	pf \
@@ -279,7 +278,8 @@ _nscd=		nscd
 
 .if ${MK_NTP} != "no"
 CONFGROUPS+=	NTP
-NTP+=		ntpd
+NTP+=		ntpd \
+		ntpdate
 NTPPACKAGE=	ntp
 .endif
 
