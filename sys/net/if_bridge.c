@@ -3638,6 +3638,7 @@ bad:
 	return (error);
 }
 
+#ifdef INET
 /*
  * Perform basic checks on header size since
  * pfil assumes ip_input has already processed
@@ -3795,6 +3796,7 @@ bad:
 }
 #endif /* INET6 */
 
+#ifdef INET
 /*
  * bridge_fragment:
  *
