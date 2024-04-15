@@ -17,7 +17,6 @@ CONFS=	DAEMON \
 	cfumass \
 	cleanvar \
 	cleartmp \
-	cron \
 	ctld \
 	ddb \
 	defaultroute \
@@ -127,6 +126,10 @@ GGATEDPACKAGE=		ggate
 CONFGROUPS+=		RESOLVCONF
 RESOLVCONF=		resolv
 RESOLVCONFPACKAGE=	resolvconf
+
+CONFGROUPS+=		CRON
+CRON+=			cron
+CRONPACKAGE=		cron
 
 .if ${MK_NIS} != "no"
 CONFS+=	ypbind \
