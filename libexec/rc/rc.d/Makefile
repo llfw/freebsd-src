@@ -256,7 +256,9 @@ CONSOLEPACKAGE=	console-tools
 .endif
 
 .if ${MK_LPR} != "no"
-CONFS+=		lpd
+CONFGROUPS+=	LP
+LP+=		lpd
+LPPACKAGE=	lp
 .endif
 
 .if ${MK_KERBEROS} != "no"
