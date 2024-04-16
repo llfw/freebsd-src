@@ -379,6 +379,9 @@ SER_${d:tu:C/\//_/g}+=	${d}/${f}
 .endfor
 FILESGROUPS+=	SER_${d:tu:C/\//_/g}
 SER_${d:tu:C/\//_/g}DIR+=	${SHAREDIR}/examples/${d}
+.if ${SE_${d:tu:C/\//_/g}PACKAGE:U} != ""
+SER_${d:tu:C/\//_/g}PACKAGE=	${SE_${d:tu:C/\//_/g}PACKAGE}
+.endif
 .endfor
 
 BINDIR= ${SHAREDIR}/examples
