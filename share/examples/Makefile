@@ -349,6 +349,7 @@ SE_YPLDAP=	ypldap.conf
 
 .if ${MK_HAST} != "no"
 LDIRS+=		hast
+SE_HASTPACKAGE=	hast
 SE_DIRS+=	hast
 SE_HAST=	ucarp.sh \
 	ucarp_down.sh \
