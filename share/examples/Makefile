@@ -203,6 +203,7 @@ SE_PERFMON= \
 .if ${MK_PF} != "no"
 SE_DIRS+=	pf
 .if ${MK_STAGING} == "no"
+SE_PFPACKAGE=	pf
 SE_PF= \
 	ackpri \
 	faq-example1 \
