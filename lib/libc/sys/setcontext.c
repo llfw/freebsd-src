@@ -36,12 +36,10 @@
 __weak_reference(__sys_setcontext, __setcontext);
 __sym_compat(setcontext, __impl_setcontext, FBSD_1.0);
 __weak_reference(setcontext, __impl_setcontext);
-__sym_default(setcontext, setcontext, FBSD_1.2);
 
 #pragma weak setcontext
 int
 setcontext(const ucontext_t *uc)
 {
-	return (((int (*)(const ucontext_t *))
-	    *(__libc_interposing_slot(INTERPOS_setcontext)))(uc));
+	return (INTERPOS_SYS(setcontext, uc));
 }
