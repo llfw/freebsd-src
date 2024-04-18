@@ -45,6 +45,7 @@ SE_BSD_DAEMON= \
 .if ${MK_BHYVE} != "no"
 LDIRS+=		bhyve
 SE_DIRS+=	bhyve
+SE_BHYVEPACKAGE=bhyve
 SE_BHYVE=	vmrun.sh
 PACKAGE_bhyve/vmrun.sh=	bhyve
 .endif
@@ -57,6 +58,7 @@ SE_FREEBSD_VERSION= \
 	README
 
 SE_DIRS+=	bootforth
+SE_BOOTFORTH_PACKAGE=bootloader
 SE_BOOTFORTH= \
 	README \
 	boot.4th \
@@ -67,7 +69,8 @@ SE_BOOTFORTH= \
 	screen.4th
 
 SE_DIRS+=	csh
-SE_CSH=	dot.cshrc
+SE_CSHPACKAGE=	csh
+SE_CSH=		dot.cshrc
 
 SE_DIRS+=	drivers
 SE_DRIVERS= \
@@ -98,9 +101,11 @@ SUBDIR+=	ipfilter
 .endif
 
 SE_DIRS+=	ipfw
+SE_IPFWPACKAGE=	ipfw
 SE_IPFW=	change_rules.sh
 
 SE_DIRS+=	jails
+SE_JAILPACKAGE=	jail
 SE_JAILS= \
 	README \
 	VIMAGE \
@@ -224,6 +229,7 @@ SE_PPI= \
 	ppilcd.c
 
 SE_DIRS+=	ppp
+SE_PPPPACKAGE=	ppp
 SE_PPP= \
 	chap-auth \
 	login-auth \
@@ -241,6 +247,7 @@ SE_PPP= \
 	ppp.secret.span-isp.working
 
 SE_DIRS+=	printing
+SE_PRINTINGPACKAGE=lp
 SE_PRINTING= \
 	diablo-if-net \
 	hpdf \
@@ -343,10 +350,12 @@ SE_SUNRPC_SORT= \
 LDIRS+=		uefisign
 SE_DIRS+=	uefisign
 SE_UEFISIGN=	uefikeys
+SE_UEFISIGNPACKAGE=efi-tools
 .endif
 
 SE_DIRS+=	ypldap
 SE_YPLDAP=	ypldap.conf
+SE_YPLDAPPACKAGE=yp
 
 .if ${MK_HAST} != "no"
 LDIRS+=		hast
@@ -383,6 +392,8 @@ FILESGROUPS+=	SER_${d:tu:C/\//_/g}
 SER_${d:tu:C/\//_/g}DIR+=	${SHAREDIR}/examples/${d}
 .if ${SE_${d:tu:C/\//_/g}PACKAGE:U} != ""
 SER_${d:tu:C/\//_/g}PACKAGE=	${SE_${d:tu:C/\//_/g}PACKAGE}
+.else
+SER_${d:tu:C/\//_/g}PACKAGE=	examples
 .endif
 .endfor
 
