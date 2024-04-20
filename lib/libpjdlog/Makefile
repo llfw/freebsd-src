@@ -5,7 +5,6 @@ SHLIBDIR?=	/lib
 
 .include <bsd.own.mk>
 
-PACKAGE=	lib${LIB}
 LIB=		pjdlog
 SRCS=		pjdlog.c
 

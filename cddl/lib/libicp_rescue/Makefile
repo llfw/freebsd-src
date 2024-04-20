@@ -1,7 +1,7 @@
 
 .PATH: ${SRCTOP}/sys/contrib/openzfs/module/icp
 
-PACKAGE=lib${LIB}
+PACKAGE=	utilities
 LIB=	icp_rescue
 LIBADD=
 

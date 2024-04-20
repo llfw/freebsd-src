@@ -1,6 +1,5 @@
 #	$NetBSD: Makefile,v 1.5 1999/07/23 09:44:38 mrg Exp $
 
-PACKAGE=lib${LIB}
 LIB=	usbhid
 MAN=	usbhid.3
 

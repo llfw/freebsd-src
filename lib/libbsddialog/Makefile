@@ -2,7 +2,6 @@ BSDDIALOG=	${SRCTOP}/contrib/bsddialog
 
 .PATH:	${BSDDIALOG}/lib
 
-PACKAGE=libprivate${LIB}
 LIB=	bsddialog
 PRIVATELIB=	yes
 SHLIB_MAJOR=	0

@@ -1,6 +1,5 @@
 
 WARNS?=		3
-PACKAGE=	lib${LIB}
 LIB=		memstat
 SHLIB_MAJOR=	3
 LIBADD+=	kvm

@@ -1,6 +1,5 @@
 
-PACKAGE=lib${LIB_CXX}
-LIB_CXX=pmc
+LIB_CXX= pmc
 
 SRCS=	libpmc.c pmclog.c libpmc_pmu_util.c libpmc_json.cc
 INCS=	pmc.h pmclog.h pmcformat.h

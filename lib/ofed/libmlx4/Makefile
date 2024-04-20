@@ -3,7 +3,6 @@ _spath=	${SRCTOP}/contrib/ofed/libmlx4
 .PATH: ${_spath}
 
 SHLIBDIR?=	/usr/lib
-PACKAGE=	lib${LIB}
 LIB=		mlx4
 SHLIB_MAJOR=	1
 MK_PROFILE=	no

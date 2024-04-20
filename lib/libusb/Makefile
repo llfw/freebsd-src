@@ -3,7 +3,6 @@
 # Makefile for the FreeBSD specific LibUSB 2.0
 #
 
-PACKAGE=	lib${LIB}
 LIB=		usb
 SHLIB_MAJOR=	3
 SHLIB_MINOR=	0

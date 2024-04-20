@@ -1,7 +1,6 @@
 
 .include <bsd.compiler.mk>
 
-PACKAGE=	lib${LIB}
 SHLIB_NAME=	libomp.so
 
 OMPSRC=		${SRCTOP}/contrib/llvm-project/openmp/runtime/src

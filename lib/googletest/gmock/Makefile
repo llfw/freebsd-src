@@ -3,7 +3,6 @@
 
 .PATH:	${GOOGLEMOCK_SRCROOT}/include ${GOOGLEMOCK_SRCROOT}/src
 
-PACKAGE=	libprivategtest
 LIB_CXX=	gmock
 SHLIB_MAJOR=	0
 PRIVATELIB=	true

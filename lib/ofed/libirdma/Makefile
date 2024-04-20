@@ -4,7 +4,6 @@ lin_inc=/usr/src/sys/compat/linuxkpi/common/include
 .PATH: ${_spath}
 
 SHLIBDIR?=	/lib
-PACKAGE=	lib${LIB}
 LIB=		irdma
 SHLIB_MAJOR=	1
 MK_PROFILE=	no

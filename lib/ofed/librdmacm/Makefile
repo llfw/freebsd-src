@@ -2,7 +2,6 @@
 _spath=	${SRCTOP}/contrib/ofed/librdmacm
 .PATH: ${_spath} ${_spath}/man
 
-PACKAGE=	lib${LIB}
 SHLIBDIR?=	/usr/lib
 LIB=		rdmacm
 SHLIB_MAJOR=	1

@@ -3,7 +3,6 @@ _spath=	${SRCTOP}/contrib/ofed/opensm/opensm
 .PATH:	${_spath}
 
 SHLIBDIR?=	/usr/lib
-PACKAGE=	lib${LIB}
 LIB=		opensm
 SHLIB_MAJOR=	5
 MK_PROFILE=	no
