@@ -18,6 +18,8 @@ CONFSMODE_${OPENBSMETCDIR}/audit_user=  600
 CONFS+= ${OPENBSMETCDIR}/audit_warn
 CONFSMODE_${OPENBSMETCDIR}/audit_warn=  500
 CONFSDIR=       /etc/security
+
+PACKAGE=audit
 PROG=	auditd
 SRCS=	auditd.c audit_warn.c auditd_fbsd.c
 MAN=	auditd.8
