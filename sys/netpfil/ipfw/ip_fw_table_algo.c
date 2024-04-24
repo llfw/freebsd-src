@@ -32,6 +32,9 @@
 
 #include "opt_ipfw.h"
 #include "opt_inet.h"
+#ifndef INET
+#error IPFIREWALL requires INET.
+#endif /* INET */
 #include "opt_inet6.h"
 
 #include <sys/param.h>
@@ -608,11 +611,11 @@ tei_to_sockaddr_ent_addr(struct tentry_info *tei, struct sockaddr *sa,
 	int mlen;
 #ifdef INET
 	struct sockaddr_in *addr, *mask;
-	in_addr_t a4;
 #endif
 #ifdef INET6
 	struct sa_in6 *addr6, *mask6;
 #endif
+	in_addr_t a4;
 
 	mlen = tei->masklen;
 
@@ -658,9 +661,7 @@ ta_prepare_add_addr_radix(struct ip_fw_chain *ch, struct tentry_info *tei,
     void *ta_buf)
 {
 	struct ta_buf_radix *tb;
-#ifdef INET
 	struct addr_radix_entry *ent;
-#endif
 #ifdef INET6
 	struct addr_radix_xentry *xent;
 #endif
@@ -672,9 +673,8 @@ ta_prepare_add_addr_radix(struct ip_fw_chain *ch, struct tentry_info *tei,
 	mlen = tei->masklen;
 	set_mask = 0;
 
-	switch (tei->subtype) {
+	if (tei->subtype == AF_INET) {
 #ifdef INET
-	case AF_INET:
 		if (mlen > 32)
 			return (EINVAL);
 		ent = malloc(sizeof(*ent), M_IPFW_TBL, M_WAITOK | M_ZERO);
@@ -683,11 +683,9 @@ ta_prepare_add_addr_radix(struct ip_fw_chain *ch, struct tentry_info *tei,
 		addr = (struct sockaddr *)&ent->addr;
 		mask = (struct sockaddr *)&tb->addr.a4.ma;
 		tb->ent_ptr = ent;
-		break;
 #endif
-
 #ifdef INET6
-	case AF_INET6:
+	} else if (tei->subtype == AF_INET6) {
 		/* IPv6 case */
 		if (mlen > 128)
 			return (EINVAL);
@@ -697,10 +695,8 @@ ta_prepare_add_addr_radix(struct ip_fw_chain *ch, struct tentry_info *tei,
 		addr = (struct sockaddr *)&xent->addr6;
 		mask = (struct sockaddr *)&tb->addr.a6.ma;
 		tb->ent_ptr = xent;
-		break;
 #endif
-
-	default:
+	} else {
 		/* Unknown CIDR type */
 		return (EINVAL);
 	}
@@ -1160,11 +1156,10 @@ ta_lookup_chash_64(struct table_info *ti, void *key, uint32_t keylen,
 	struct chashbhead *head;
 	struct chashentry *ent;
 	uint16_t hash, hsize;
+	uint8_t imask;
 
 	if (keylen == sizeof(in_addr_t)) {
 #ifdef INET
-		uint8_t imask;
-
 		head = (struct chashbhead *)ti->state;
 		imask = ti->data >> 24;
 		hsize = 1 << ((ti->data & 0xFFFF) >> 8);
