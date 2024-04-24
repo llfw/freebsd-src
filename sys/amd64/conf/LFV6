@@ -2,6 +2,7 @@
 
 cpu		HAMMER
 ident		LFV6
+makeoptions	WITHOUT_MODULES="ipfw"
 
 include "LF"
 
