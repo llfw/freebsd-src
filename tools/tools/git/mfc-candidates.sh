@@ -41,7 +41,7 @@ if [ "${repo}" = "ports.git" ]; then
 	qtr=$(((month-1) / 3 + 1))
 	to_branch="freebsd/${year}Q${qtr}"
 elif [ "${repo}" = "src.git" ]; then
-	to_branch=freebsd/stable/13
+	to_branch=freebsd/stable/14
 	# If pwd is a stable or release branch tree, default to it.
 	cur_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 	case $cur_branch in
@@ -152,7 +152,6 @@ canonicalize_hashes()
 workdir=$(mktemp -d /tmp/find-mfc.XXXXXXXXXX)
 from_list=$workdir/commits-from
 to_list=$workdir/commits-to
-candidate_list=$workdir/candidates
 
 if [ -n "$exclude_file" ]; then
 	exclude_list=$workdir/commits-exclude
@@ -163,10 +162,6 @@ commits_from "$@" > $from_list
 commits_to "$@" > $to_list
 
 /usr/libexec/flua $(dirname $0)/candidatematch.lua \
-    $from_list $to_list $exclude_list > $candidate_list
-
-while read hash; do
-	git show --pretty='%h %s' --no-patch $hash
-done < $candidate_list
+    $from_list $to_list $exclude_list
 
 rm -rf "$workdir"

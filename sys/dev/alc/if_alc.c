@@ -1420,7 +1420,7 @@ alc_attach(device_t dev)
 		/*
 		 * Disable MSI-X by default on Killer devices, since this is
 		 * reported by several users to not work well.
-		 * */
+		 */
 		if (msix_disable == 2)
 			msix_disable = 1;
 
