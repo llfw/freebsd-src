@@ -711,12 +711,6 @@ _e6000sw=	e6000sw
 _neta=		neta
 .endif
 
-.if ${MACHINE_CPUARCH} == "i386" || ${MACHINE_CPUARCH} == "amd64" \
-	|| ${MACHINE_CPUARCH} == "aarch64"
-_nvme=		nvme
-_nvd=		nvd
-.endif
-
 .if ${MACHINE_CPUARCH} == "i386" || ${MACHINE_CPUARCH} == "amd64"
 _agp=		agp
 .if ${MACHINE_CPUARCH} == "i386" || !empty(COMPAT_FREEBSD32_ENABLED)
