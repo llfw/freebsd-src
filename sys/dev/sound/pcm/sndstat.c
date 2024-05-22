@@ -51,7 +51,6 @@
 
 #include <dev/sound/pcm/sound.h>
 #include <dev/sound/pcm/pcm.h>
-#include <dev/sound/version.h>
 
 #include "feeder_if.h"
 
@@ -706,7 +705,7 @@ sndstat_unpack_user_nvlbuf(const void *unvlbuf, size_t nbytes, nvlist_t **nvl)
 	}
 	*nvl = nvlist_unpack(nvlbuf, nbytes, 0);
 	free(nvlbuf, M_DEVBUF);
-	if (nvl == NULL) {
+	if (*nvl == NULL) {
 		return (EINVAL);
 	}
 
@@ -862,6 +861,11 @@ sndstat_add_user_devs(struct sndstat_file *pf, caddr_t data)
 
 	if ((pf->fflags & FWRITE) == 0) {
 		err = EPERM;
+		goto done;
+	}
+
+	if (arg->nbytes > SNDST_UNVLBUF_MAX) {
+		err = ENOMEM;
 		goto done;
 	}
 
@@ -1271,11 +1275,8 @@ sndstat_prepare(struct sndstat_file *pf_self)
 	/* make sure buffer is reset */
 	sbuf_clear(s);
 
-	if (snd_verbose > 0) {
-		sbuf_printf(s, "FreeBSD Audio Driver (%ubit %d/%s)\n",
-		    (u_int)sizeof(intpcm32_t) << 3, SND_DRV_VERSION,
-		    MACHINE_ARCH);
-	}
+	if (snd_verbose > 0)
+		sbuf_printf(s, "FreeBSD Audio Driver\n");
 
 	/* generate list of installed devices */
 	k = 0;
