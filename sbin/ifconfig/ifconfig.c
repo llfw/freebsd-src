@@ -315,8 +315,6 @@ cmpifaddrs(struct ifaddrs *a, struct ifaddrs *b, struct ifa_queue *q)
 static void freeformat(void)
 {
 
-	free(f_inet);
-	free(f_inet6);
 	free(f_ether);
 	free(f_addr);
 }
@@ -332,10 +330,8 @@ static void setformat(char *input)
 			if (strcmp(category, "default") == 0) {
 				freeformat();
 			} else if (strcmp(category, "cidr") == 0) {
-				free(f_inet);
-				f_inet = strdup(category);
-				free(f_inet6);
-				f_inet6 = strdup(category);
+				f_inet = INET_CIDR;
+				f_inet6 = INET6_CIDR;
 			} else {
 				warnx("Skipping invalid format: %s\n",
 				    category);
