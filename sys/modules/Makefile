@@ -442,8 +442,7 @@ SUBDIR+=	dtrace
 SUBDIR+=	opensolaris
 .endif
 
-# Requires bus_space_read_8
-.if ${MACHINE_ARCH} != "i386"
+.if !${MACHINE_ABI:Mlong32}
 _bnxt=		bnxt
 .endif
 
@@ -490,7 +489,7 @@ _sctp=		sctp
 _if_stf=	if_stf
 .endif
 
-.if ${MK_INET_SUPPORT} != "no" || defined(ALL_MODULES)
+.if (${KERN_OPTS:MINET} && ${MK_INET_SUPPORT} != "no") || defined(ALL_MODULES)
 _if_me=		if_me
 _ipfw=		ipfw
 .if ${MK_INET6_SUPPORT} != "no" || defined(ALL_MODULES)
