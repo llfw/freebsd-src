@@ -1,4 +1,3 @@
-
 SUBDIR=	media packages
 
 PACKAGE=	bsdconfig

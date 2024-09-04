@@ -1,4 +1,3 @@
-
 SUBDIR= include share
 
 PACKAGE=	bsdconfig

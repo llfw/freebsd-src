@@ -660,6 +660,8 @@ t4vf_attach(device_t dev)
 			t4_os_set_hw_addr(pi, mac);
 		pmask &= ~(1 << p);
 
+		sc->vlan_id = t4vf_get_vf_vlan(sc);
+
 		/* No t4_link_start. */
 
 		snprintf(pi->lockname, sizeof(pi->lockname), "%sp%d",
@@ -671,7 +673,7 @@ t4vf_attach(device_t dev)
 		ifmedia_init(&pi->media, IFM_IMASK, cxgbe_media_change,
 		    cxgbe_media_status);
 
-		pi->dev = device_add_child(dev, sc->names->vf_ifnet_name, -1);
+		pi->dev = device_add_child(dev, sc->names->vf_ifnet_name, DEVICE_UNIT_ANY);
 		if (pi->dev == NULL) {
 			device_printf(dev,
 			    "failed to add device for port %d.\n", i);

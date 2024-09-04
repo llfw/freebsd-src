@@ -1,5 +1,3 @@
-
-PACKAGE=	bsdconfig
 FILESDIR=	${LIBEXECDIR}/bsdconfig/includes/include
 FILES=		messages.subr
 
