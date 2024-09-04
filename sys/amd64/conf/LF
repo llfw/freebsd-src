@@ -49,7 +49,7 @@ options		IPSEC_SUPPORT
 options 	KDB
 options 	KDB_TRACE
 options 	KDB_UNATTENDED
-options		ALT_BREAK_TO_DEBUGGER
+#options		ALT_BREAK_TO_DEBUGGER
 
 device		acpi
 options		IOMMU
