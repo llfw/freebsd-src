@@ -375,6 +375,7 @@ static void		 pf_patch_8(struct mbuf *, u_int16_t *, u_int8_t *, u_int8_t,
 static struct pf_kstate	*pf_find_state(struct pfi_kkif *,
 			    const struct pf_state_key_cmp *, u_int);
 static int		 pf_src_connlimit(struct pf_kstate **);
+static int		 pf_match_rcvif(struct mbuf *, struct pf_krule *);
 static void		 pf_overload_task(void *v, int pending);
 static u_short		 pf_insert_src_node(struct pf_ksrc_node **,
 			    struct pf_krule *, struct pf_addr *, sa_family_t);
@@ -3951,6 +3952,27 @@ pf_match_tag(struct mbuf *m, struct pf_krule *r, int *tag, int mtag)
 	    (r->match_tag_not && r->match_tag != *tag));
 }
 
+static int
+pf_match_rcvif(struct mbuf *m, struct pf_krule *r)
+{
+	struct ifnet *ifp = m->m_pkthdr.rcvif;
+	struct pfi_kkif *kif;
+
+	if (ifp == NULL)
+		return (0);
+
+	kif = (struct pfi_kkif *)ifp->if_pf_kif;
+
+	if (kif == NULL) {
+		DPFPRINTF(PF_DEBUG_URGENT,
+		    ("pf_test_via: kif == NULL, @%d via %s\n", r->nr,
+			r->rcv_ifname));
+		return (0);
+	}
+
+	return (pfi_kkif_match(r->rcv_kif, kif));
+}
+
 int
 pf_tag_packet(struct mbuf *m, struct pf_pdesc *pd, int tag)
 {
@@ -5154,6 +5176,8 @@ pf_test_rule(struct pf_krule **rm, struct pf_kstate **sm, struct pfi_kkif *kif,
 			r = TAILQ_NEXT(r, entries);
 		else if (r->match_tag && !pf_match_tag(m, r, &tag,
 		    pd->pf_mtag ? pd->pf_mtag->tag : 0))
+			r = TAILQ_NEXT(r, entries);
+		else if (r->rcv_kif && !pf_match_rcvif(m, r))
 			r = TAILQ_NEXT(r, entries);
 		else if (r->os_fingerprint != PF_OSFP_ANY &&
 		    (pd->proto != IPPROTO_TCP || !pf_osfp_match(
@@ -6935,7 +6959,7 @@ pf_icmp_state_lookup(struct pf_state_key_cmp *key, struct pf_pdesc *pd,
 	    PF_IN : PF_OUT) != icmp_dir) {
 		if (V_pf_status.debug >= PF_DEBUG_MISC) {
 			printf("pf: icmp type %d in wrong direction (%d): ",
-			    icmp_dir, pd->dir);
+			    ntohs(type), icmp_dir);
 			pf_print_state(*state);
 			printf("\n");
 		}
@@ -7648,10 +7672,10 @@ pf_test_state_other(struct pf_kstate **state, struct pfi_kkif *kif,
 #endif /* INET */
 #ifdef INET6
 		case AF_INET6:
-			if (PF_ANEQ(pd->src, &nk->addr[pd->sidx], AF_INET))
+			if (PF_ANEQ(pd->src, &nk->addr[pd->sidx], AF_INET6))
 				PF_ACPY(pd->src, &nk->addr[pd->sidx], pd->af);
 
-			if (PF_ANEQ(pd->dst, &nk->addr[pd->didx], AF_INET))
+			if (PF_ANEQ(pd->dst, &nk->addr[pd->didx], AF_INET6))
 				PF_ACPY(pd->dst, &nk->addr[pd->didx], pd->af);
 #endif /* INET6 */
 		}
@@ -8415,6 +8439,12 @@ pf_test_eth(int dir, int pflags, struct ifnet *ifp, struct mbuf **m0,
 	if (m->m_flags & M_SKIP_FIREWALL)
 		return (PF_PASS);
 
+	if (__predict_false(! M_WRITABLE(*m0))) {
+		m = *m0 = m_unshare(*m0, M_NOWAIT);
+		if (*m0 == NULL)
+			return (PF_DROP);
+	}
+
 	/* Stateless! */
 	return (pf_test_eth_rule(dir, kif, m0));
 }
@@ -8551,6 +8581,12 @@ pf_test(int dir, int pflags, struct ifnet *ifp, struct mbuf **m0,
 	if (m->m_flags & M_SKIP_FIREWALL) {
 		PF_RULES_RUNLOCK();
 		return (PF_PASS);
+	}
+
+	if (__predict_false(! M_WRITABLE(*m0))) {
+		m = *m0 = m_unshare(*m0, M_NOWAIT);
+		if (*m0 == NULL)
+			return (PF_DROP);
 	}
 
 	memset(&pd, 0, sizeof(pd));
@@ -8816,14 +8852,12 @@ pf_test(int dir, int pflags, struct ifnet *ifp, struct mbuf **m0,
 		break;
 	}
 
-#ifdef INET6
 	case IPPROTO_ICMPV6: {
 		action = PF_DROP;
 		DPFPRINTF(PF_DEBUG_MISC,
 		    ("pf: dropping IPv4 packet with ICMPv6 payload\n"));
 		goto done;
 	}
-#endif
 
 	default:
 		action = pf_test_state_other(&s, kif, m, &pd);
@@ -9145,6 +9179,12 @@ pf_test6(int dir, int pflags, struct ifnet *ifp, struct mbuf **m0, struct inpcb 
 		*m0 = NULL;
 		icmp6_error(m, ICMP6_PACKET_TOO_BIG, 0, IN6_LINKMTU(ifp));
 		return (PF_DROP);
+	}
+
+	if (__predict_false(! M_WRITABLE(*m0))) {
+		m = *m0 = m_unshare(*m0, M_NOWAIT);
+		if (*m0 == NULL)
+			return (PF_DROP);
 	}
 
 	memset(&pd, 0, sizeof(pd));
