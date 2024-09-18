@@ -76,3 +76,7 @@ options		XENHVM
 device		xenefi
 device		xenpci
 device		xentimer
+
+# AT keyboard, for dryad
+device		atkbd
+device		atkbdc
