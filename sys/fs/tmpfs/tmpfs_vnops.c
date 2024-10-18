@@ -1344,6 +1344,7 @@ tmpfs_rmdir(struct vop_rmdir_args *v)
 		goto out;
 	}
 
+	/* Check flags to see if we are allowed to remove the directory. */
 	if ((dnode->tn_flags & APPEND)
 	    || (node->tn_flags & (NOUNLINK | IMMUTABLE | APPEND))) {
 		error = EPERM;
@@ -1360,13 +1361,6 @@ tmpfs_rmdir(struct vop_rmdir_args *v)
 	MPASS(TMPFS_DIRENT_MATCHES(de,
 	    cnp->cn_nameptr,
 	    cnp->cn_namelen));
-
-	/* Check flags to see if we are allowed to remove the directory. */
-	if ((dnode->tn_flags & APPEND) != 0 ||
-	    (node->tn_flags & (NOUNLINK | IMMUTABLE | APPEND)) != 0) {
-		error = EPERM;
-		goto out;
-	}
 
 	/* Detach the directory entry from the directory (dnode). */
 	tmpfs_dir_detach(dvp, de);
@@ -2099,7 +2093,7 @@ static off_t
 tmpfs_seek_data_locked(vm_object_t obj, off_t noff)
 {
 	vm_page_t m;
-	vm_pindex_t p, p_m, p_swp;
+	vm_pindex_t p, p_swp;
 
 	p = OFF_TO_IDX(noff);
 	m = vm_page_find_least(obj, p);
@@ -2108,15 +2102,24 @@ tmpfs_seek_data_locked(vm_object_t obj, off_t noff)
 	 * Microoptimize the most common case for SEEK_DATA, where
 	 * there is no hole and the page is resident.
 	 */
-	if (m != NULL && vm_page_any_valid(m) && m->pindex == p)
+	if (m != NULL && m->pindex == p && vm_page_any_valid(m))
 		return (noff);
 
 	p_swp = swap_pager_find_least(obj, p);
 	if (p_swp == p)
 		return (noff);
 
-	p_m = m == NULL ? obj->size : m->pindex;
-	return (IDX_TO_OFF(MIN(p_m, p_swp)));
+	/*
+	 * Find the first resident page after p, before p_swp.
+	 */
+	while (m != NULL && m->pindex < p_swp) {
+		if (vm_page_any_valid(m))
+			return (IDX_TO_OFF(m->pindex));
+		m = TAILQ_NEXT(m, listq);
+	}
+	if (p_swp == OBJ_MAX_SIZE)
+		p_swp = obj->size;
+	return (IDX_TO_OFF(p_swp));
 }
 
 static off_t

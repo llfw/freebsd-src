@@ -29,6 +29,7 @@
 #include <sys/cdefs.h>
 #include "opt_bus.h"
 #include "opt_ddb.h"
+#include "opt_iommu.h"
 
 #include <sys/param.h>
 #include <sys/conf.h>
@@ -59,6 +60,8 @@
 
 #include <vm/uma.h>
 #include <vm/vm.h>
+
+#include <dev/iommu/iommu.h>
 
 #include <ddb/ddb.h>
 
@@ -105,6 +108,16 @@ struct devclass {
 	struct sysctl_oid *sysctl_tree;
 };
 
+struct device_prop_elm {
+	const char *name;
+	void *val;
+	void *dtr_ctx;
+	device_prop_dtr_t dtr;
+	LIST_ENTRY(device_prop_elm) link;
+};
+
+static void device_destroy_props(device_t dev);
+
 /**
  * @brief Implementation of _device.
  *
@@ -141,6 +154,7 @@ struct _device {
 	u_int	order;			/**< order from device_add_child_ordered() */
 	void	*ivars;			/**< instance variables  */
 	void	*softc;			/**< current driver's variables  */
+	LIST_HEAD(, device_prop_elm) props;
 
 	struct sysctl_ctx_list sysctl_ctx; /**< state for sysctl variables  */
 	struct sysctl_oid *sysctl_tree;	/**< state for sysctl variables */
@@ -250,6 +264,7 @@ enum {
 	DEVICE_SYSCTL_LOCATION,
 	DEVICE_SYSCTL_PNPINFO,
 	DEVICE_SYSCTL_PARENT,
+	DEVICE_SYSCTL_IOMMU,
 };
 
 static int
@@ -257,7 +272,10 @@ device_sysctl_handler(SYSCTL_HANDLER_ARGS)
 {
 	struct sbuf sb;
 	device_t dev = (device_t)arg1;
+	device_t iommu;
 	int error;
+	uint16_t rid;
+	const char *c;
 
 	sbuf_new_for_sysctl(&sb, NULL, 1024, req);
 	sbuf_clear_flags(&sb, SBUF_INCLUDENUL);
@@ -277,6 +295,22 @@ device_sysctl_handler(SYSCTL_HANDLER_ARGS)
 		break;
 	case DEVICE_SYSCTL_PARENT:
 		sbuf_cat(&sb, dev->parent ? dev->parent->nameunit : "");
+		break;
+	case DEVICE_SYSCTL_IOMMU:
+		iommu = NULL;
+		error = device_get_prop(dev, DEV_PROP_NAME_IOMMU,
+		    (void **)&iommu);
+		c = "";
+		if (error == 0 && iommu != NULL) {
+			sbuf_printf(&sb, "unit=%s", device_get_nameunit(iommu));
+			c = " ";
+		}
+		rid = 0;
+#ifdef IOMMU
+		iommu_get_requester(dev, &rid);
+#endif
+		if (rid != 0)
+			sbuf_printf(&sb, "%srid=%#x", c, rid);
 		break;
 	default:
 		error = EINVAL;
@@ -327,6 +361,11 @@ device_sysctl_init(device_t dev)
 	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
 	    dev, DEVICE_SYSCTL_PARENT, device_sysctl_handler, "A",
 	    "parent device");
+	SYSCTL_ADD_PROC(&dev->sysctl_ctx, SYSCTL_CHILDREN(dev->sysctl_tree),
+	    OID_AUTO, "%iommu",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
+	    dev, DEVICE_SYSCTL_IOMMU, device_sysctl_handler, "A",
+	    "iommu unit handling the device requests");
 	if (bus_get_domain(dev, &domain) == 0)
 		SYSCTL_ADD_INT(&dev->sysctl_ctx,
 		    SYSCTL_CHILDREN(dev->sysctl_tree), OID_AUTO, "%domain",
@@ -1349,6 +1388,7 @@ make_device(device_t parent, const char *name, int unit)
 		dev->flags |= DF_QUIET | DF_QUIET_CHILDREN;
 	dev->ivars = NULL;
 	dev->softc = NULL;
+	LIST_INIT(&dev->props);
 
 	dev->state = DS_NOTPRESENT;
 
@@ -1477,17 +1517,21 @@ device_delete_child(device_t dev, device_t child)
 
 	PDEBUG(("%s from %s", DEVICENAME(child), DEVICENAME(dev)));
 
-	/* detach parent before deleting children, if any */
+	/*
+	 * Detach child.  Ideally this cleans up any grandchild
+	 * devices.
+	 */
 	if ((error = device_detach(child)) != 0)
 		return (error);
 
-	/* remove children second */
+	/* Delete any grandchildren left after detach. */
 	while ((grandchild = TAILQ_FIRST(&child->children)) != NULL) {
 		error = device_delete_child(child, grandchild);
 		if (error)
 			return (error);
 	}
 
+	device_destroy_props(dev);
 	if (child->devclass)
 		devclass_delete_device(child->devclass, child);
 	if (child->parent)
@@ -1662,13 +1706,13 @@ device_probe_child(device_t dev, device_t child)
 			result = DEVICE_PROBE(child);
 
 			/*
-			 * If the driver returns SUCCESS, there can be
-			 * no higher match for this device.
+			 * If probe returns 0, this is the driver that wins this
+			 * device.
 			 */
 			if (result == 0) {
 				best = dl;
 				pri = 0;
-				break;
+				goto exact_match;	/* C doesn't have break 2 */
 			}
 
 			/* Reset flags and devclass before the next probe. */
@@ -1712,12 +1756,6 @@ device_probe_child(device_t dev, device_t child)
 				continue;
 			}
 		}
-		/*
-		 * If we have an unambiguous match in this devclass,
-		 * don't look in the parent.
-		 */
-		if (best && pri == 0)
-			break;
 	}
 
 	if (best == NULL)
@@ -1725,35 +1763,34 @@ device_probe_child(device_t dev, device_t child)
 
 	/*
 	 * If we found a driver, change state and initialise the devclass.
+	 * Set the winning driver, devclass, and flags.
 	 */
-	if (pri < 0) {
-		/* Set the winning driver, devclass, and flags. */
-		result = device_set_driver(child, best->driver);
-		if (result != 0)
-			return (result);
-		if (!child->devclass) {
-			result = device_set_devclass(child, best->driver->name);
-			if (result != 0) {
-				(void)device_set_driver(child, NULL);
-				return (result);
-			}
-		}
-		resource_int_value(best->driver->name, child->unit,
-		    "flags", &child->devflags);
-
-		/*
-		 * A bit bogus. Call the probe method again to make sure
-		 * that we have the right description.
-		 */
-		result = DEVICE_PROBE(child);
-		if (result > 0) {
-			if (!hasclass)
-				(void)device_set_devclass(child, NULL);
+	result = device_set_driver(child, best->driver);
+	if (result != 0)
+		return (result);
+	if (!child->devclass) {
+		result = device_set_devclass(child, best->driver->name);
+		if (result != 0) {
 			(void)device_set_driver(child, NULL);
 			return (result);
 		}
 	}
+	resource_int_value(best->driver->name, child->unit,
+	    "flags", &child->devflags);
 
+	/*
+	 * A bit bogus. Call the probe method again to make sure that we have
+	 * the right description for the device.
+	 */
+	result = DEVICE_PROBE(child);
+	if (result > 0) {
+		if (!hasclass)
+			(void)device_set_devclass(child, NULL);
+		(void)device_set_driver(child, NULL);
+		return (result);
+	}
+
+exact_match:
 	child->state = DS_ALIVE;
 	bus_data_generation_update();
 	return (0);
@@ -2548,6 +2585,7 @@ device_attach(device_t dev)
 	if ((error = DEVICE_ATTACH(dev)) != 0) {
 		printf("device_attach: %s%d attach returned %d\n",
 		    dev->driver->name, dev->unit, error);
+		BUS_CHILD_DETACHED(dev->parent, dev);
 		if (disable_failed_devs) {
 			/*
 			 * When the user has asked to disable failed devices, we
@@ -3407,9 +3445,6 @@ bus_generic_detach(device_t dev)
 {
 	device_t child;
 	int error;
-
-	if (dev->state != DS_ATTACHED)
-		return (EBUSY);
 
 	/*
 	 * Detach children in the reverse order.
@@ -5859,6 +5894,10 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 			error = EINVAL;
 			break;
 		}
+		if (device_get_parent(dev) == NULL) {
+			error = EINVAL;
+			break;
+		}
 		error = BUS_RESET_CHILD(device_get_parent(dev), dev,
 		    req->dr_flags);
 		break;
@@ -6015,6 +6054,113 @@ dev_wired_cache_match(device_location_cache_t *dcp, device_t dev,
 		return (false);
 
 	return (strcmp(res->dln_path, cp) == 0);
+}
+
+static struct device_prop_elm *
+device_prop_find(device_t dev, const char *name)
+{
+	struct device_prop_elm *e;
+
+	bus_topo_assert();
+
+	LIST_FOREACH(e, &dev->props, link) {
+		if (strcmp(name, e->name) == 0)
+			return (e);
+	}
+	return (NULL);
+}
+
+int
+device_set_prop(device_t dev, const char *name, void *val,
+    device_prop_dtr_t dtr, void *dtr_ctx)
+{
+	struct device_prop_elm *e, *e1;
+
+	bus_topo_assert();
+
+	e = device_prop_find(dev, name);
+	if (e != NULL)
+		goto found;
+
+	e1 = malloc(sizeof(*e), M_BUS, M_WAITOK);
+	e = device_prop_find(dev, name);
+	if (e != NULL) {
+		free(e1, M_BUS);
+		goto found;
+	}
+
+	e1->name = name;
+	e1->val = val;
+	e1->dtr = dtr;
+	e1->dtr_ctx = dtr_ctx;
+	LIST_INSERT_HEAD(&dev->props, e1, link);
+	return (0);
+
+found:
+	LIST_REMOVE(e, link);
+	if (e->dtr != NULL)
+		e->dtr(dev, name, e->val, e->dtr_ctx);
+	e->val = val;
+	e->dtr = dtr;
+	e->dtr_ctx = dtr_ctx;
+	LIST_INSERT_HEAD(&dev->props, e, link);
+	return (EEXIST);
+}
+
+int
+device_get_prop(device_t dev, const char *name, void **valp)
+{
+	struct device_prop_elm *e;
+
+	bus_topo_assert();
+
+	e = device_prop_find(dev, name);
+	if (e == NULL)
+		return (ENOENT);
+	*valp = e->val;
+	return (0);
+}
+
+int
+device_clear_prop(device_t dev, const char *name)
+{
+	struct device_prop_elm *e;
+
+	bus_topo_assert();
+
+	e = device_prop_find(dev, name);
+	if (e == NULL)
+		return (ENOENT);
+	LIST_REMOVE(e, link);
+	if (e->dtr != NULL)
+		e->dtr(dev, e->name, e->val, e->dtr_ctx);
+	free(e, M_BUS);
+	return (0);
+}
+
+static void
+device_destroy_props(device_t dev)
+{
+	struct device_prop_elm *e;
+
+	bus_topo_assert();
+
+	while ((e = LIST_FIRST(&dev->props)) != NULL) {
+		LIST_REMOVE_HEAD(&dev->props, link);
+		if (e->dtr != NULL)
+			e->dtr(dev, e->name, e->val, e->dtr_ctx);
+		free(e, M_BUS);
+	}
+}
+
+void
+device_clear_prop_alldev(const char *name)
+{
+	device_t dev;
+
+	TAILQ_FOREACH(dev, &bus_data_devices, devlink) {
+		device_clear_prop(dev, name);
+	}
 }
 
 /*
