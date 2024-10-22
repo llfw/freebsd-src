@@ -53,6 +53,7 @@ options 	KDB_UNATTENDED
 
 device		acpi
 options		IOMMU
+options		PCI_IOV		# PCI SR-IOV support
 device		pci
 device		uart
 device		loop
