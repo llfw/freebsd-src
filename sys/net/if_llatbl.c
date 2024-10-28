@@ -913,8 +913,6 @@ lltable_link_entry(struct lltable *llt, struct llentry *lle)
 void
 lltable_link_child_entry(struct llentry *lle, struct llentry *child_lle)
 {
-	LLE_WLOCK_ASSERT(child_lle);
-
 	child_lle->lle_parent = lle;
 	child_lle->lle_tbl = lle->lle_tbl;
 	child_lle->la_flags |= LLE_LINKED;
@@ -925,8 +923,6 @@ void
 lltable_unlink_child_entry(struct llentry *child_lle)
 {
 	struct llentry *lle = child_lle->lle_parent;
-
-	LLE_WLOCK_ASSERT(child_lle);
 
 	child_lle->la_flags &= ~LLE_LINKED;
 	child_lle->lle_parent = NULL;

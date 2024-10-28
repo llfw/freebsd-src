@@ -259,56 +259,6 @@ fwd_ip_icmp_gw_slow_success_cleanup() {
 	vnet_cleanup
 }
 
-atf_test_case "fwd_ip_via_v6" "cleanup"
-fwd_ip_via_v6_head() {
-	atf_set descr 'Test using an IPv6 gateway for IPv4 routing'
-	atf_set require.user root
-}
-
-fwd_ip_via_v6_body() {
-	vnet_init
-
-	j="fwd_ip_via_v6_"
-
-	epair_one=$(vnet_mkepair)
-	epair_two=$(vnet_mkepair)
-
-	vnet_mkjail ${j}c ${epair_one}a
-	jexec ${j}c ifconfig ${epair_one}a 192.0.2.2/24 up
-	jexec ${j}c ifconfig ${epair_one}a inet6 2001:db8::2/64 up no_dad
-	atf_check -s exit:0 -o ignore \
-	    jexec ${j}c route add -6 -net -inet 0.0.0.0/0 -inet6 2001:db8::1
-
-	vnet_mkjail ${j}r ${epair_one}b ${epair_two}a
-	jexec ${j}r ifconfig ${epair_one}b 192.0.2.1/24 up
-	jexec ${j}r ifconfig ${epair_one}b inet6 2001:db8::1/64 up no_dad
-	jexec ${j}r ifconfig ${epair_two}a 198.51.100.1/24 up
-	jexec ${j}r sysctl net.inet.ip.forwarding=1
-
-	vnet_mkjail ${j}s ${epair_two}b
-	jexec ${j}s ifconfig ${epair_two}b 198.51.100.2/24 up
-	jexec ${j}s route add default 198.51.100.1
-
-	# Sanity checking
-	atf_check -s exit:0 -o ignore \
-	    jexec ${j}c ping -c 1 192.0.2.1
-	atf_check -s exit:0 -o ignore \
-	    jexec ${j}c ping6 -c 1 2001:db8::1
-
-	atf_check -s exit:0 -o ignore \
-	    jexec ${j}r ping -c 1 198.51.100.2
-
-	# Actual test, can we ping server jail?
-	atf_check -s exit:0 -o ignore \
-	    jexec ${j}c ping -c 3 198.51.100.2
-
-	jexec ${j}c netstat -rn
-}
-
-fwd_ip_via_v6_cleanup() {
-	vnet_cleanup
-}
-
 atf_init_test_cases()
 {
 
@@ -316,7 +266,6 @@ atf_init_test_cases()
 	atf_add_test_case "fwd_ip_icmp_gw_fast_success"
 	atf_add_test_case "fwd_ip_icmp_iface_slow_success"
 	atf_add_test_case "fwd_ip_icmp_gw_slow_success"
-	atf_add_test_case "fwd_ip_via_v6"
 }
 
 # end

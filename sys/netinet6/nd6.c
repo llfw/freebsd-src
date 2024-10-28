@@ -2472,10 +2472,9 @@ nd6_resolve_slow(struct ifnet *ifp, int family, int flags, struct mbuf *m,
 	/* If we have child lle, switch to the parent to send NS */
 	if (lle->la_flags & LLE_CHILD) {
 		struct llentry *lle_parent = lle->lle_parent;
-		struct llentry *olle = lle;
+		LLE_WUNLOCK(lle);
 		lle = lle_parent;
 		LLE_WLOCK(lle);
-		LLE_WUNLOCK(olle);
 	}
 	if (lle->la_asked == 0) {
 		lle->la_asked++;
