@@ -2363,6 +2363,9 @@ nd6_get_llentry(struct ifnet *ifp, const struct in6_addr *addr, int family)
 		lle = child_lle;
 	}
 	IF_AFDATA_WUNLOCK(ifp);
+
+	if (!rw_wowned(&lle->lle_lock))
+		panic("lle %p not locked @ %s:%d!", lle, __FILE__, __LINE__);
 	return (lle);
 }
 
@@ -2410,7 +2413,8 @@ nd6_resolve_slow(struct ifnet *ifp, int family, int flags, struct mbuf *m,
 		return (ENOBUFS);
 	}
 
-	LLE_WLOCK_ASSERT(lle);
+	if (!rw_wowned(&lle->lle_lock))
+		panic("lle %p not locked @ %s:%d!", lle, __FILE__, __LINE__);
 
 	/*
 	 * The first time we send a packet to a neighbor whose entry is
