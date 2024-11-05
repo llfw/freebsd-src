@@ -3,7 +3,7 @@
 #
 
 # PROVIDE: gssd
-# REQUIRE: root mountcritlocal NETWORKING kdc
+# REQUIRE: root mountcritlocal NETWORKING
 # BEFORE: mountcritremote
 # KEYWORD: nojailvnet shutdown
 
