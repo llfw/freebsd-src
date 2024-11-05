@@ -1,5 +1,9 @@
 # le-fay.org standard options (arch-indep)
 
+# Enabled for now since we run into quite a few of these.
+options         WITNESS                 # Enable checks to detect deadlocks and cycles
+options         WITNESS_SKIPSPIN        # Don't run witness on spinlocks for speed
+
 options 	SMP
 options 	SCHED_ULE
 options		NUMA
