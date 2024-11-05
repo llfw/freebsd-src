@@ -49,3 +49,5 @@ options 	KDB_UNATTENDED
 device		loop
 device		ether
 device		bpf
+# KERN_TLS requires crypto
+device		crypto
