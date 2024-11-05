@@ -11,9 +11,11 @@ makeoptions	DEBUG=-g		# Build kernel with gdb(1) debug symbols
 
 options 	HWPMC_HOOKS
 
-device		loop
-device		ether
-device		bpf
+device		acpi
+options		IOMMU
+options		PCI_IOV
+device		pci
+device		uart
 
 # LinuxKPI requires firmware
 device		firmware
