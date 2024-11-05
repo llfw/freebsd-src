@@ -1,0 +1,51 @@
+# le-fay.org standard options (arch-indep)
+
+options 	SMP
+options 	SCHED_ULE
+options		NUMA
+options 	PREEMPTION
+options 	INET
+options 	INET6
+options		TCP_OFFLOAD
+options		KERN_TLS
+options		VIMAGE
+options 	GEOM_LABEL		# Provides labelization
+# COMPAT_FREEBSD32 is required for linux.ko which is required for poudriere
+options		COMPAT_FREEBSD32
+# COMPAT_FREEBSD11 is required for Go
+options 	COMPAT_FREEBSD11	# Compatible with FreeBSD11
+options 	COMPAT_FREEBSD12	# Compatible with FreeBSD12
+options 	COMPAT_FREEBSD13	# Compatible with FreeBSD13
+options 	COMPAT_FREEBSD14	# Compatible with FreeBSD14
+options 	SCSI_DELAY=1000
+options 	KTRACE
+options 	STACK
+options 	_KPOSIX_PRIORITY_SCHEDULING
+options 	PRINTF_BUFR_SIZE=128
+options 	CAPABILITY_MODE		# Capsicum capability mode
+options 	CAPABILITIES		# Capsicum capabilities
+options 	MAC			# TrustedBSD MAC Framework
+#options 	KDTRACE_FRAME		# Ensure frames are compiled in
+#options 	KDTRACE_HOOKS		# Kernel DTrace hooks
+#options 	DDB_CTF			# Kernel ELF linker loads CTF data
+options 	INCLUDE_CONFIG_FILE
+options		SOFTUPDATES
+options		UFS_ACL
+options		UFS_DIRHASH
+options		RCTL
+options		RACCT
+options		RACCT_DEFAULT_TO_DISABLED
+options		FIB_ALGO
+options 	CC_CUBIC		# include CUBIC congestion control
+options		TCP_BLACKBOX
+options		TCP_HHOOK
+options		TCP_RFC7413
+
+options 	KDB
+options 	KDB_TRACE
+options 	KDB_UNATTENDED
+#options		ALT_BREAK_TO_DEBUGGER
+
+device		loop
+device		ether
+device		bpf
