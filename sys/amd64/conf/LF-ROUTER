@@ -1,0 +1,37 @@
+# le-fay.org router kernel
+# This includes pf and ipfw with pf default to drop.
+
+cpu		HAMMER
+ident		LF
+
+include "LF"
+
+# PF
+device		pf
+device		pflog
+device		pfsync
+options		PF_DEFAULT_TO_DROP
+
+# altq
+options		ALTQ
+options		ALTQ_CBQ
+options		ALTQ_CODEL
+options		ALTQ_RED
+options		ALTQ_RIO
+options		ALTQ_HFSC
+options		ALTQ_CDNR
+options		ALTQ_PRIQ
+options		ALTQ_FAIRQ
+
+# ipfw
+options		IPFIREWALL
+options		IPFIREWALL_VERBOSE
+options		IPFIREWALL_VERBOSE_LIMIT=100
+options		IPFIREWALL_DEFAULT_TO_ACCEPT
+options		IPFIREWALL_NAT
+options		IPFIREWALL_NAT64
+options		IPFIREWALL_NPTV6
+options		LIBALIAS
+
+# dummynet
+options		DUMMYNET
