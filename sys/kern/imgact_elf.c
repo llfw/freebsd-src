@@ -127,7 +127,7 @@ int __elfN(nxstack) =
 #endif
 SYSCTL_INT(__CONCAT(_kern_elf, __ELF_WORD_SIZE), OID_AUTO,
     nxstack, CTLFLAG_RW, &__elfN(nxstack), 0,
-    __XSTRING(__CONCAT(ELF, __ELF_WORD_SIZE)) ": enable non-executable stack");
+    __XSTRING(__CONCAT(ELF, __ELF_WORD_SIZE)) ": support PT_GNU_STACK for non-executable stack control");
 
 #if defined(__amd64__)
 static int __elfN(vdso) = 1;
@@ -2420,6 +2420,9 @@ __elfN(prepare_register_notes)(struct thread *td, struct note_info_list *list,
 	size_t size;
 
 	size = 0;
+
+	if (target_td == td)
+		cpu_update_pcb(target_td);
 
 	/* NT_PRSTATUS must be the first register set note. */
 	size += __elfN(register_regset_note)(td, list, &__elfN(regset_prstatus),

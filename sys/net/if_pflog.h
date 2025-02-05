@@ -33,8 +33,6 @@
 
 #include <net/if.h>
 
-#define	PFLOGIFS_MAX	16
-
 #define	PFLOG_RULESET_NAME_SIZE	16
 
 struct pfloghdr {
@@ -51,7 +49,9 @@ struct pfloghdr {
 	uid_t		rule_uid;
 	pid_t		rule_pid;
 	u_int8_t	dir;
-	u_int8_t	pad[3];
+	u_int8_t	pad1;	/* rewritten, on OpenBSD */
+	sa_family_t	naf;
+	u_int8_t	pad[1];
 	u_int32_t	ridentifier;
 	u_int8_t	reserve;	/* Appease broken software like Wireshark. */
 	u_int8_t	pad2[3];

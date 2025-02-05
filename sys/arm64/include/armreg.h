@@ -363,6 +363,13 @@
 #define	CSSELR_InD		0x00000001
 
 /* CTR_EL0 - Cache Type Register */
+#define	CTR_EL0			MRS_REG(CTR_EL0)
+#define	CTR_EL0_REG		MRS_REG_ALT_NAME(CTR_EL0)
+#define	CTR_EL0_op0		3
+#define	CTR_EL0_op1		3
+#define	CTR_EL0_CRn		0
+#define	CTR_EL0_CRm		0
+#define	CTR_EL0_op2		1
 #define	CTR_RES1		(1 << 31)
 #define	CTR_TminLine_SHIFT	32
 #define	CTR_TminLine_MASK	(UL(0x3f) << CTR_TminLine_SHIFT)
@@ -1117,7 +1124,7 @@
 #define	ID_AA64ISAR2_WFxT_MASK		(UL(0xf) << ID_AA64ISAR2_WFxT_SHIFT)
 #define	ID_AA64ISAR2_WFxT_VAL(x)	((x) & ID_AA64ISAR2_WFxT_MASK)
 #define	 ID_AA64ISAR2_WFxT_NONE		(UL(0x0) << ID_AA64ISAR2_WFxT_SHIFT)
-#define	 ID_AA64ISAR2_WFxT_IMPL		(UL(0x1) << ID_AA64ISAR2_WFxT_SHIFT)
+#define	 ID_AA64ISAR2_WFxT_IMPL		(UL(0x2) << ID_AA64ISAR2_WFxT_SHIFT)
 #define	ID_AA64ISAR2_RPRES_SHIFT	4
 #define	ID_AA64ISAR2_RPRES_WIDTH	4
 #define	ID_AA64ISAR2_RPRES_MASK		(UL(0xf) << ID_AA64ISAR2_RPRES_SHIFT)
@@ -2059,7 +2066,7 @@
 #define	PAR_NS_SHIFT		9
 #define	PAR_NS_MASK		(0x3 << PAR_NS_SHIFT)
 #define	PAR_PA_SHIFT		12
-#define	PAR_PA_MASK		0x0000fffffffff000
+#define	PAR_PA_MASK		0x000ffffffffff000
 #define	PAR_ATTR_SHIFT		56
 #define	PAR_ATTR_MASK		(0xff << PAR_ATTR_SHIFT)
 /* When PAR_F == 1 (aborted) */
@@ -2776,12 +2783,12 @@
 
 /* ZCR_EL1 - SVE Control Register */
 #define	ZCR_EL1			MRS_REG(ZCR_EL1)
-#define	ZCR_EL1_REG		MRS_REG_ALT_NAME(ZCR_EL1_REG)
-#define	ZCR_EL1_REG_op0		3
-#define	ZCR_EL1_REG_op1		0
-#define	ZCR_EL1_REG_CRn		1
-#define	ZCR_EL1_REG_CRm		2
-#define	ZCR_EL1_REG_op2		0
+#define	ZCR_EL1_REG		MRS_REG_ALT_NAME(ZCR_EL1)
+#define	ZCR_EL1_op0		3
+#define	ZCR_EL1_op1		0
+#define	ZCR_EL1_CRn		1
+#define	ZCR_EL1_CRm		2
+#define	ZCR_EL1_op2		0
 #define	ZCR_LEN_SHIFT		0
 #define	ZCR_LEN_MASK		(0xf << ZCR_LEN_SHIFT)
 #define	ZCR_LEN_BYTES(x)	((((x) & ZCR_LEN_MASK) + 1) * 16)

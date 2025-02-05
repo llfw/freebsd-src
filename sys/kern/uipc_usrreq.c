@@ -1796,7 +1796,7 @@ uipc_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (unp->unp_flags & UNP_HAVEPC)
 				xu = unp->unp_peercred;
 			else {
-				if (so->so_type == SOCK_STREAM)
+				if (so->so_proto->pr_flags & PR_CONNREQUIRED)
 					error = ENOTCONN;
 				else
 					error = EINVAL;
@@ -1897,6 +1897,8 @@ unp_connectat(int fd, struct socket *so, struct sockaddr *nam,
 	int error, len;
 	bool connreq;
 
+	CURVNET_ASSERT_SET();
+
 	if (nam->sa_family != AF_UNIX)
 		return (EAFNOSUPPORT);
 	if (nam->sa_len > sizeof(struct sockaddr_un))
@@ -1991,11 +1993,9 @@ unp_connectat(int fd, struct socket *so, struct sockaddr *nam,
 		goto bad2;
 	}
 	if (connreq) {
-		if (SOLISTENING(so2)) {
-			CURVNET_SET(so2->so_vnet);
+		if (SOLISTENING(so2))
 			so2 = sonewconn(so2, 0);
-			CURVNET_RESTORE();
-		} else
+		else
 			so2 = NULL;
 		if (so2 == NULL) {
 			error = ECONNREFUSED;

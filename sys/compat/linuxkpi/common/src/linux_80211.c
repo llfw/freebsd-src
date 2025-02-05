@@ -1181,6 +1181,8 @@ lkpi_sta_scan_to_auth(struct ieee80211vap *vap, enum ieee80211_state nstate, int
 		    lvif, vap, vap->iv_bss, lvif->lvif_bss,
 		    (lvif->lvif_bss != NULL) ? lvif->lvif_bss->ni : NULL,
 		    lvif->lvif_bss_synched);
+		LKPI_80211_LVIF_UNLOCK(lvif);
+		ieee80211_free_node(ni);	/* Error handling for the local ni. */
 		return (EBUSY);
 	}
 	LKPI_80211_LVIF_UNLOCK(lvif);
@@ -1272,12 +1274,12 @@ lkpi_sta_scan_to_auth(struct ieee80211vap *vap, enum ieee80211_state nstate, int
 			vif->bss_conf.chanreq.oper.center_freq1 =
 			    chanctx_conf->def.center_freq1;
 #ifdef LKPI_80211_HT
-			if (vif->bss_conf.chandef.width == NL80211_CHAN_WIDTH_40) {
+			if (vif->bss_conf.chanreq.oper.width == NL80211_CHAN_WIDTH_40) {
 				/* Note: it is 10 not 20. */
 				if (IEEE80211_IS_CHAN_HT40U(ni->ni_chan))
-					vif->bss_conf.chandef.center_freq1 += 10;
+					vif->bss_conf.chanreq.oper.center_freq1 += 10;
 				else if (IEEE80211_IS_CHAN_HT40D(ni->ni_chan))
-					vif->bss_conf.chandef.center_freq1 -= 10;
+					vif->bss_conf.chanreq.oper.center_freq1 -= 10;
 			}
 #endif
 			vif->bss_conf.chanreq.oper.center_freq2 =
@@ -2763,6 +2765,10 @@ lkpi_ic_wme_update(struct ieee80211com *ic)
  * we do use a per-[l]vif event handler to be sure we exist as we
  * cannot assume that from every vap derives a vif and we have a hard
  * time checking based on net80211 information.
+ * Should this ever become a real problem we could add a callback function
+ * to wlan_iflladdr() to be set optionally but that would be for a
+ * single-consumer (or needs a list) -- was just too complicated for an
+ * otherwise perfect mechanism FreeBSD already provides.
  */
 static void
 lkpi_vif_iflladdr(void *arg, struct ifnet *ifp)
@@ -2771,14 +2777,15 @@ lkpi_vif_iflladdr(void *arg, struct ifnet *ifp)
 	struct ieee80211_vif *vif;
 
 	NET_EPOCH_ENTER(et);
-	/* NB: identify vap's by if_init; left as an extra check. */
-	if (ifp->if_init != ieee80211_init || (ifp->if_flags & IFF_UP) != 0) {
+	/* NB: identify vap's by if_transmit; left as an extra check. */
+	if (if_gettransmitfn(ifp) != ieee80211_vap_transmit ||
+	    (if_getflags(ifp) & IFF_UP) != 0) {
 		NET_EPOCH_EXIT(et);
 		return;
 	}
 
 	vif = arg;
-	IEEE80211_ADDR_COPY(vif->bss_conf.addr, IF_LLADDR(ifp));
+	IEEE80211_ADDR_COPY(vif->bss_conf.addr, if_getlladdr(ifp));
 	NET_EPOCH_EXIT(et);
 }
 
@@ -3697,7 +3704,16 @@ lkpi_ic_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
 
 	lsta = ni->ni_drv_data;
 	LKPI_80211_LSTA_TXQ_LOCK(lsta);
+#if 0
 	if (!lsta->added_to_drv || !lsta->txq_ready) {
+#else
+	/*
+	 * Backout this part of 886653492945f which breaks rtw88 or
+	 * in general drivers without (*sta_state)() but only the
+	 * legacy fallback to (*sta_add)().
+	 */
+	if (!lsta->txq_ready) {
+#endif
 		LKPI_80211_LSTA_TXQ_UNLOCK(lsta);
 		/*
 		 * Free the mbuf (do NOT release ni ref for the m_pkthdr.rcvif!
@@ -3945,7 +3961,16 @@ lkpi_80211_txq_task(void *ctx, int pending)
 	 * We also use txq_ready as a semaphore and will drain the txq manually
 	 * if needed on our way towards SCAN/INIT in the state machine.
 	 */
+#if 0
 	shall_tx = lsta->added_to_drv && lsta->txq_ready;
+#else
+	/*
+	 * Backout this part of 886653492945f which breaks rtw88 or
+	 * in general drivers without (*sta_state)() but only the
+	 * legacy fallback to (*sta_add)().
+	 */
+	shall_tx = lsta->txq_ready;
+#endif
 	if (__predict_true(shall_tx))
 		mbufq_concat(&mq, &lsta->txq);
 	/*
@@ -4526,6 +4551,8 @@ lkpi_ic_getradiocaps(struct ieee80211com *ic, int maxchan,
 			ic->ic_flags_ext |= IEEE80211_FEXT_VHT;
 			ic->ic_vht_cap.vht_cap_info =
 			    hw->wiphy->bands[NL80211_BAND_5GHZ]->vht_cap.cap;
+			ic->ic_vht_cap.supp_mcs =
+			    hw->wiphy->bands[NL80211_BAND_5GHZ]->vht_cap.vht_mcs;
 
 			setbit(bands, IEEE80211_MODE_VHT_5GHZ);
 			chan_flags |= NET80211_CBW_FLAG_VHT80;
@@ -5308,13 +5335,13 @@ linuxkpi_ieee80211_rx(struct ieee80211_hw *hw, struct sk_buff *skb,
 
 	/* Implement a dump_rxcb() !!! */
 	if (linuxkpi_debug_80211 & D80211_TRACE_RX)
-		printf("TRACE-RX: %s: RXCB: %ju %ju %u, %#0x, %u, %#0x, %#0x, "
+		printf("TRACE-RX: %s: RXCB: %ju %ju %u, %b, %u, %#0x, %#0x, "
 		    "%u band %u, %u { %d %d %d %d }, %d, %#x %#x %#x %#x %u %u %u\n",
 			__func__,
 			(uintmax_t)rx_status->boottime_ns,
 			(uintmax_t)rx_status->mactime,
 			rx_status->device_timestamp,
-			rx_status->flag,
+			rx_status->flag, IEEE80211_RX_STATUS_FLAGS_BITS,
 			rx_status->freq,
 			rx_status->bw,
 			rx_status->encoding,

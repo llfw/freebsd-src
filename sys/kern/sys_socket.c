@@ -96,7 +96,7 @@ static fo_aio_queue_t soo_aio_queue;
 
 static void	soo_aio_cancel(struct kaiocb *job);
 
-struct fileops	socketops = {
+const struct fileops socketops = {
 	.fo_read = soo_read,
 	.fo_write = soo_write,
 	.fo_truncate = invfo_truncate,
@@ -288,7 +288,7 @@ soo_poll(struct file *fp, int events, struct ucred *active_cred,
 	if (error)
 		return (error);
 #endif
-	return (sopoll(so, events, fp->f_cred, td));
+	return (so->so_proto->pr_sopoll(so, events, td));
 }
 
 static int

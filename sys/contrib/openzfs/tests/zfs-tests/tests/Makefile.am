@@ -80,7 +80,8 @@ if BUILD_LINUX
 nobase_dist_datadir_zfs_tests_tests_SCRIPTS += \
 	functional/simd/simd_supported.ksh \
 	functional/tmpfile/cleanup.ksh \
-	functional/tmpfile/setup.ksh
+	functional/tmpfile/setup.ksh \
+	functional/luks/luks_sanity.ksh
 endif
 
 nobase_dist_datadir_zfs_tests_tests_DATA += \
@@ -481,6 +482,7 @@ nobase_dist_datadir_zfs_tests_tests_SCRIPTS += \
 	functional/block_cloning/block_cloning_replay_encrypted.ksh \
 	functional/block_cloning/block_cloning_lwb_buffer_overflow.ksh \
 	functional/block_cloning/block_cloning_rlimit_fsize.ksh \
+	functional/block_cloning/block_cloning_large_offset.ksh \
 	functional/bootfs/bootfs_001_pos.ksh \
 	functional/bootfs/bootfs_002_neg.ksh \
 	functional/bootfs/bootfs_003_pos.ksh \
@@ -613,6 +615,8 @@ nobase_dist_datadir_zfs_tests_tests_SCRIPTS += \
 	functional/cli_root/json/setup.ksh \
 	functional/cli_root/json/json_sanity.ksh \
 	functional/cli_root/zinject/zinject_args.ksh \
+	functional/cli_root/zinject/zinject_counts.ksh \
+	functional/cli_root/zinject/zinject_probe.ksh \
 	functional/cli_root/zdb/zdb_002_pos.ksh \
 	functional/cli_root/zdb/zdb_003_pos.ksh \
 	functional/cli_root/zdb/zdb_004_pos.ksh \
@@ -996,7 +1000,6 @@ nobase_dist_datadir_zfs_tests_tests_SCRIPTS += \
 	functional/cli_root/zpool_add/add_prop_ashift.ksh \
 	functional/cli_root/zpool_add/cleanup.ksh \
 	functional/cli_root/zpool_add/setup.ksh \
-	functional/cli_root/zpool_add/zpool_add--allow-ashift-mismatch.ksh \
 	functional/cli_root/zpool_add/zpool_add_001_pos.ksh \
 	functional/cli_root/zpool_add/zpool_add_002_pos.ksh \
 	functional/cli_root/zpool_add/zpool_add_003_pos.ksh \
@@ -1224,6 +1227,7 @@ nobase_dist_datadir_zfs_tests_tests_SCRIPTS += \
 	functional/cli_root/zpool_scrub/zpool_scrub_multiple_copies.ksh \
 	functional/cli_root/zpool_scrub/zpool_scrub_offline_device.ksh \
 	functional/cli_root/zpool_scrub/zpool_scrub_print_repairing.ksh \
+	functional/cli_root/zpool_scrub/zpool_scrub_txg_continue_from_last.ksh \
 	functional/cli_root/zpool_scrub/zpool_error_scrub_001_pos.ksh \
 	functional/cli_root/zpool_scrub/zpool_error_scrub_002_pos.ksh \
 	functional/cli_root/zpool_scrub/zpool_error_scrub_003_pos.ksh \
@@ -1240,6 +1244,7 @@ nobase_dist_datadir_zfs_tests_tests_SCRIPTS += \
 	functional/cli_root/zpool_set/user_property_001_pos.ksh \
 	functional/cli_root/zpool_set/user_property_002_neg.ksh \
 	functional/cli_root/zpool_set/zpool_set_features.ksh \
+	functional/cli_root/zpool_set/zpool_set_clear_userprop.ksh \
 	functional/cli_root/zpool_split/cleanup.ksh \
 	functional/cli_root/zpool_split/setup.ksh \
 	functional/cli_root/zpool_split/zpool_split_cliargs.ksh \
@@ -1528,6 +1533,7 @@ nobase_dist_datadir_zfs_tests_tests_SCRIPTS += \
 	functional/fault/decrypt_fault.ksh \
 	functional/fault/fault_limits.ksh \
 	functional/fault/scrub_after_resilver.ksh \
+	functional/fault/suspend_on_probe_errors.ksh \
 	functional/fault/suspend_resume_single.ksh \
 	functional/fault/setup.ksh \
 	functional/fault/zpool_status_-s.ksh \

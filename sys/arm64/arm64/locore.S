@@ -351,7 +351,6 @@ LENTRY(enter_kernel_el)
 	isb
 	mrs	x4, hcr_el2
 
-
 	/* Load the Virtualization Process ID Register */
 	mrs	x2, midr_el1
 	msr	vpidr_el2, x2
@@ -400,6 +399,20 @@ LENTRY(enter_kernel_el)
 	/* Set the return PSTATE */
 	msr	spsr_el2, x5
 
+	/*
+	 * Configure the Extended Hypervisor register. This is only valid if
+	 * FEAT_HCX is enabled.
+	 */
+	mrs x2, id_aa64mmfr1_el1
+	ubfx x2, x2, #ID_AA64MMFR1_HCX_SHIFT, #ID_AA64MMFR1_HCX_WIDTH
+	cbz x2, 2f
+
+	/* Extended Hypervisor Configuration */
+	mov x2, xzr
+	msr HCRX_EL2_REG, x2
+	isb
+2:
+
 	/* Don't trap to EL2 for CP15 traps */
 	msr	hstr_el2, xzr
 
@@ -414,13 +427,13 @@ LENTRY(enter_kernel_el)
 	/* Extract GIC bits from the register */
 	ubfx	x2, x2, #ID_AA64PFR0_GIC_SHIFT, #ID_AA64PFR0_GIC_BITS
 	/* GIC[3:0] != 0000 - GIC CPU interface via special regs. supported */
-	cbz	x2, 2f
+	cbz	x2, 3f
 
 	mrs	x2, icc_sre_el2
 	orr	x2, x2, #ICC_SRE_EL2_EN	/* Enable access from insecure EL1 */
 	orr	x2, x2, #ICC_SRE_EL2_SRE	/* Enable system registers */
 	msr	icc_sre_el2, x2
-2:
+3:
 
 	/* Set the address to return to our return address */
 	msr	elr_el2, x30
@@ -940,20 +953,17 @@ LENTRY(start_mmu)
 	bfi	x2, x3, #(TCR_ASID_SHIFT), #(TCR_ASID_WIDTH)
 
 	/*
-	 * Check if the HW supports access flag and dirty state updates,
-	 * and set TCR_EL1.HA and TCR_EL1.HD accordingly.
+	 * Check if the HW supports access flag updates, and set
+	 * TCR_EL1.HA accordingly. The TCR_EL1.HD flag to enable
+	 * HW management of dirty state is set in C code as it may
+	 * need to be disabled because of CPU errata.
 	 */
 	mrs	x3, id_aa64mmfr1_el1
 	and	x3, x3, #(ID_AA64MMFR1_HAFDBS_MASK)
-	cmp	x3, #1
-	b.ne	1f
-	orr 	x2, x2, #(TCR_HA)
-	b	2f
+	cbz	x3, 1f
+	orr	x2, x2, #(TCR_HA)
 1:
-	cmp	x3, #2
-	b.ne	2f
-	orr 	x2, x2, #(TCR_HA | TCR_HD)
-2:
+
 	msr	tcr_el1, x2
 
 	/*

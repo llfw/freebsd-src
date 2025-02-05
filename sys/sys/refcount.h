@@ -28,12 +28,13 @@
 #ifndef __SYS_REFCOUNT_H__
 #define __SYS_REFCOUNT_H__
 
-#include <machine/atomic.h>
-
-#include <sys/systm.h>
+#include <sys/types.h>
+#include <sys/kassert.h>
 #if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <stdbool.h>
 #endif
+
+#include <machine/atomic.h>
 
 #define	REFCOUNT_SATURATED(val)		(((val) & (1U << 31)) != 0)
 #define	REFCOUNT_SATURATION_VALUE	(3U << 30)
@@ -63,7 +64,7 @@ refcount_init(volatile u_int *count, u_int value)
 }
 
 static __inline u_int
-refcount_load(volatile u_int *count)
+refcount_load(volatile const u_int *count)
 {
 	return (atomic_load_int(count));
 }

@@ -647,7 +647,7 @@ vdev_alloc_common(spa_t *spa, uint_t id, uint64_t guid, vdev_ops_t *ops)
 	if (spa->spa_root_vdev == NULL) {
 		ASSERT(ops == &vdev_root_ops);
 		spa->spa_root_vdev = vd;
-		spa->spa_load_guid = spa_generate_guid(NULL);
+		spa->spa_load_guid = spa_generate_load_guid();
 	}
 
 	if (guid == 0 && ops != &vdev_hole_ops) {
@@ -2041,6 +2041,7 @@ vdev_open(vdev_t *vd)
 	vd->vdev_cant_read = B_FALSE;
 	vd->vdev_cant_write = B_FALSE;
 	vd->vdev_fault_wanted = B_FALSE;
+	vd->vdev_remove_wanted = B_FALSE;
 	vd->vdev_min_asize = vdev_get_min_asize(vd);
 
 	/*
@@ -2205,10 +2206,11 @@ vdev_open(vdev_t *vd)
 		vd->vdev_max_asize = max_asize;
 
 		/*
-		 * If the vdev_ashift was not overridden at creation time,
+		 * If the vdev_ashift was not overridden at creation time
+		 * (0) or the override value is impossible for the device,
 		 * then set it the logical ashift and optimize the ashift.
 		 */
-		if (vd->vdev_ashift == 0) {
+		if (vd->vdev_ashift < vd->vdev_logical_ashift) {
 			vd->vdev_ashift = vd->vdev_logical_ashift;
 
 			if (vd->vdev_logical_ashift > ASHIFT_MAX) {
@@ -5968,7 +5970,7 @@ vdev_prop_set(vdev_t *vd, nvlist_t *innvl, nvlist_t *outnvl)
 			goto end;
 		}
 
-		if (vdev_prop_readonly(prop)) {
+		if (prop != VDEV_PROP_USERPROP && vdev_prop_readonly(prop)) {
 			error = EROFS;
 			goto end;
 		}
@@ -6550,7 +6552,6 @@ ZFS_MODULE_PARAM(zfs, zfs_, deadman_events_per_second, UINT, ZMOD_RW,
 ZFS_MODULE_PARAM(zfs, zfs_, dio_write_verify_events_per_second, UINT, ZMOD_RW,
 	"Rate Direct I/O write verify events to this many per second");
 
-/* BEGIN CSTYLED */
 ZFS_MODULE_PARAM(zfs_vdev, zfs_vdev_, direct_write_verify, UINT, ZMOD_RW,
 	"Direct I/O writes will perform for checksum verification before "
 	"commiting write");
@@ -6558,7 +6559,6 @@ ZFS_MODULE_PARAM(zfs_vdev, zfs_vdev_, direct_write_verify, UINT, ZMOD_RW,
 ZFS_MODULE_PARAM(zfs, zfs_, checksum_events_per_second, UINT, ZMOD_RW,
 	"Rate limit checksum events to this many checksum errors per second "
 	"(do not set below ZED threshold).");
-/* END CSTYLED */
 
 ZFS_MODULE_PARAM(zfs, zfs_, scan_ignore_errors, INT, ZMOD_RW,
 	"Ignore errors during resilver/scrub");
@@ -6572,7 +6572,6 @@ ZFS_MODULE_PARAM(zfs, zfs_, nocacheflush, INT, ZMOD_RW,
 ZFS_MODULE_PARAM(zfs, zfs_, embedded_slog_min_ms, UINT, ZMOD_RW,
 	"Minimum number of metaslabs required to dedicate one for log blocks");
 
-/* BEGIN CSTYLED */
 ZFS_MODULE_PARAM_CALL(zfs_vdev, zfs_vdev_, min_auto_ashift,
 	param_set_min_auto_ashift, param_get_uint, ZMOD_RW,
 	"Minimum ashift used when creating new top-level vdevs");
@@ -6581,4 +6580,3 @@ ZFS_MODULE_PARAM_CALL(zfs_vdev, zfs_vdev_, max_auto_ashift,
 	param_set_max_auto_ashift, param_get_uint, ZMOD_RW,
 	"Maximum ashift used when optimizing for logical -> physical sector "
 	"size on new top-level vdevs");
-/* END CSTYLED */

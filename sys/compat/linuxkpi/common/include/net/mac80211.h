@@ -625,6 +625,17 @@ enum ieee80211_rx_status_flags {
 	RX_FLAG_FAILED_PLCP_CRC		= BIT(31),
 };
 
+#define	IEEE80211_RX_STATUS_FLAGS_BITS					\
+	"\20\1ALLOW_SAME_PN\2AMPDU_DETAILS\3AMPDU_EOF_BIT\4AMPDU_EOF_BIT_KNOWN" \
+	"\5DECRYPTED\6DUP_VALIDATED\7FAILED_FCS_CRC\10ICV_STRIPPED" \
+	"\11MACTIME_PLCP_START\12MACTIME_START\13MIC_STRIPPED" \
+	"\14MMIC_ERROR\15MMIC_STRIPPED\16NO_PSDU\17PN_VALIDATED" \
+	"\20RADIOTAP_HE\21RADIOTAP_HE_MU\22RADIOTAP_LSIG\23RADIOTAP_VENDOR_DATA" \
+	"\24NO_SIGNAL_VAL\25IV_STRIPPED\26AMPDU_IS_LAST\27AMPDU_LAST_KNOWN" \
+	"\30AMSDU_MORE\31MACTIME_END\32ONLY_MONITOR\33SKIP_MONITOR" \
+	"\348023\35RADIOTAP_TLV_AT_END\36MACTIME\37MACTIME_IS_RTAP_TS64" \
+	"\40FAILED_PLCP_CRC"
+
 enum mac80211_rx_encoding {
 	RX_ENC_LEGACY		= 0,
 	RX_ENC_HT,
@@ -726,6 +737,7 @@ struct ieee80211_sta_agg {
 };
 
 struct ieee80211_link_sta {
+	struct ieee80211_sta			*sta;
 	uint8_t					addr[ETH_ALEN];
 	uint8_t					link_id;
 	uint32_t				supp_rates[NUM_NL80211_BANDS];
@@ -1110,6 +1122,9 @@ struct ieee80211_ops {
 
 /* #ifdef CONFIG_MAC80211_DEBUGFS */	/* Do not change depending on compile-time option. */
 	void (*sta_add_debugfs)(struct ieee80211_hw *, struct ieee80211_vif *, struct ieee80211_sta *, struct dentry *);
+	void (*vif_add_debugfs)(struct ieee80211_hw *, struct ieee80211_vif *);
+	void (*link_sta_add_debugfs)(struct ieee80211_hw *, struct ieee80211_vif *, struct ieee80211_link_sta *, struct dentry *);
+	void (*link_add_debugfs)(struct ieee80211_hw *, struct ieee80211_vif *, struct ieee80211_bss_conf *, struct dentry *);
 /* #endif */
 };
 
@@ -1594,7 +1609,7 @@ ieee80211_csa_finish(struct ieee80211_vif *vif, uint32_t link_id)
 	TODO();
 }
 
-static __inline enum nl80211_iftype
+static inline enum nl80211_iftype
 ieee80211_vif_type_p2p(struct ieee80211_vif *vif)
 {
 
@@ -2171,15 +2186,6 @@ ieee80211_txq_get_depth(struct ieee80211_txq *txq, unsigned long *frame_cnt,
 	linuxkpi_ieee80211_txq_get_depth(txq, frame_cnt, byte_cnt);
 }
 
-static __inline int
-rate_lowest_index(struct ieee80211_supported_band *band,
-    struct ieee80211_sta *sta)
-{
-	IMPROVE();
-	return (0);
-}
-
-
 static __inline void
 SET_IEEE80211_PERM_ADDR	(struct ieee80211_hw *hw, uint8_t *addr)
 {
@@ -2258,14 +2264,6 @@ static __inline void
 ieee80211_channel_switch_disconnect(struct ieee80211_vif *vif, bool _x)
 {
 	TODO();
-}
-
-static __inline const struct ieee80211_sta_he_cap *
-ieee80211_get_he_iftype_cap(const struct ieee80211_supported_band *band,
-    enum nl80211_iftype type)
-{
-	TODO();
-        return (NULL);
 }
 
 static __inline void
@@ -2416,20 +2414,24 @@ ieee80211_vif_is_mld(const struct ieee80211_vif *vif)
 	return (vif->valid_links != 0);
 }
 
-static __inline const struct ieee80211_sta_he_cap *
+static inline const struct ieee80211_sta_he_cap *
 ieee80211_get_he_iftype_cap_vif(const struct ieee80211_supported_band *band,
     struct ieee80211_vif *vif)
 {
-	TODO();
-	return (NULL);
+	enum nl80211_iftype iftype;
+
+	iftype = ieee80211_vif_type_p2p(vif);
+	return (ieee80211_get_he_iftype_cap(band, iftype));
 }
 
-static __inline const struct ieee80211_sta_eht_cap *
+static inline const struct ieee80211_sta_eht_cap *
 ieee80211_get_eht_iftype_cap_vif(const struct ieee80211_supported_band *band,
     struct ieee80211_vif *vif)
 {
-	TODO();
-	return (NULL);
+	enum nl80211_iftype iftype;
+
+	iftype = ieee80211_vif_type_p2p(vif);
+	return (ieee80211_get_eht_iftype_cap(band, iftype));
 }
 
 static inline uint32_t

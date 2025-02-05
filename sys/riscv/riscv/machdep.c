@@ -113,10 +113,6 @@ int cold = 1;
 
 struct kva_md_info kmi;
 
-int64_t dcache_line_size;	/* The minimum D cache line size */
-int64_t icache_line_size;	/* The minimum I cache line size */
-int64_t idcache_line_size;	/* The minimum cache line size */
-
 #define BOOT_HART_INVALID	0xffffffff
 uint32_t boot_hart = BOOT_HART_INVALID;	/* The hart we booted on. */
 
@@ -223,8 +219,18 @@ cpu_flush_dcache(void *ptr, size_t len)
 int
 cpu_est_clockrate(int cpu_id, uint64_t *rate)
 {
+	struct pcpu *pc;
 
-	panic("cpu_est_clockrate");
+	pc = pcpu_find(cpu_id);
+	if (pc == NULL || rate == NULL)
+		return (EINVAL);
+
+	if (pc->pc_clock == 0)
+		return (EOPNOTSUPP);
+
+	*rate = pc->pc_clock;
+
+	return (0);
 }
 
 void
@@ -301,11 +307,11 @@ init_proc0(vm_offset_t kstack)
 
 #ifdef FDT
 static void
-try_load_dtb(caddr_t kmdp)
+try_load_dtb(void)
 {
 	vm_offset_t dtbp;
 
-	dtbp = MD_FETCH(kmdp, MODINFOMD_DTBP, vm_offset_t);
+	dtbp = MD_FETCH(preload_kmdp, MODINFOMD_DTBP, vm_offset_t);
 
 #if defined(FDT_DTB_STATIC)
 	/*
@@ -328,17 +334,6 @@ try_load_dtb(caddr_t kmdp)
 		panic("OF_init failed with the found device tree");
 }
 #endif
-
-static void
-cache_setup(void)
-{
-
-	/* TODO */
-
-	dcache_line_size = 0;
-	icache_line_size = 0;
-	idcache_line_size = 0;
-}
 
 /*
  * Fake up a boot descriptor table.
@@ -370,7 +365,7 @@ fake_preload_metadata(struct riscv_bootparams *rvbp)
 	PRELOAD_PUSH_VALUE(uint32_t, MODINFO_NAME);
 	PRELOAD_PUSH_STRING("kernel");
 	PRELOAD_PUSH_VALUE(uint32_t, MODINFO_TYPE);
-	PRELOAD_PUSH_STRING("elf kernel");
+	PRELOAD_PUSH_STRING(preload_kerntype);
 
 	PRELOAD_PUSH_VALUE(uint32_t, MODINFO_ADDR);
 	PRELOAD_PUSH_VALUE(uint32_t, sizeof(vm_offset_t));
@@ -439,34 +434,30 @@ parse_fdt_bootargs(void)
 static vm_offset_t
 parse_metadata(void)
 {
-	caddr_t kmdp;
 	vm_offset_t lastaddr;
 #ifdef DDB
 	vm_offset_t ksym_start, ksym_end;
 #endif
 	char *kern_envp;
 
-	/* Find the kernel address */
-	kmdp = preload_search_by_type("elf kernel");
-	if (kmdp == NULL)
-		kmdp = preload_search_by_type("elf64 kernel");
-	KASSERT(kmdp != NULL, ("No preload metadata found!"));
+	/* Initialize preload_kmdp */
+	preload_initkmdp(true);
 
 	/* Read the boot metadata */
-	boothowto = MD_FETCH(kmdp, MODINFOMD_HOWTO, int);
-	lastaddr = MD_FETCH(kmdp, MODINFOMD_KERNEND, vm_offset_t);
-	kern_envp = MD_FETCH(kmdp, MODINFOMD_ENVP, char *);
+	boothowto = MD_FETCH(preload_kmdp, MODINFOMD_HOWTO, int);
+	lastaddr = MD_FETCH(preload_kmdp, MODINFOMD_KERNEND, vm_offset_t);
+	kern_envp = MD_FETCH(preload_kmdp, MODINFOMD_ENVP, char *);
 	if (kern_envp != NULL)
 		init_static_kenv(kern_envp, 0);
 	else
 		init_static_kenv(static_kenv, sizeof(static_kenv));
 #ifdef DDB
-	ksym_start = MD_FETCH(kmdp, MODINFOMD_SSYM, uintptr_t);
-	ksym_end = MD_FETCH(kmdp, MODINFOMD_ESYM, uintptr_t);
+	ksym_start = MD_FETCH(preload_kmdp, MODINFOMD_SSYM, uintptr_t);
+	ksym_end = MD_FETCH(preload_kmdp, MODINFOMD_ESYM, uintptr_t);
 	db_fetch_ksymtab(ksym_start, ksym_end, 0);
 #endif
 #ifdef FDT
-	try_load_dtb(kmdp);
+	try_load_dtb();
 	if (kern_envp == NULL)
 		parse_fdt_bootargs();
 #endif
@@ -549,8 +540,6 @@ initriscv(struct riscv_bootparams *rvbp)
 
 	/* Do basic tuning, hz etc */
 	init_param1();
-
-	cache_setup();
 
 #ifdef FDT
 	/*

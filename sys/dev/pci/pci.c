@@ -353,8 +353,8 @@ static int pci_do_power_nodriver = 0;
 SYSCTL_INT(_hw_pci, OID_AUTO, do_power_nodriver, CTLFLAG_RWTUN,
     &pci_do_power_nodriver, 0,
     "Place a function into D3 state when no driver attaches to it.  0 means"
-    " disable.  1 means conservatively place devices into D3 state.  2 means"
-    " aggressively place devices into D3 state.  3 means put absolutely"
+    " disable.  1 means conservatively place function into D3 state.  2 means"
+    " aggressively place function into D3 state.  3 means put absolutely"
     " everything in D3 state.");
 
 int pci_do_power_resume = 1;
@@ -407,7 +407,15 @@ static int pci_enable_ari = 1;
 SYSCTL_INT(_hw_pci, OID_AUTO, enable_ari, CTLFLAG_RDTUN, &pci_enable_ari,
     0, "Enable support for PCIe Alternative RID Interpretation");
 
+/*
+ * Some x86 firmware only enables PCIe hotplug if we claim to support aspm,
+ * however enabling it breaks some arm64 firmware as it powers off devices.
+ */
+#if defined(__i386__) || defined(__amd64__)
 int pci_enable_aspm = 1;
+#else
+int pci_enable_aspm = 0;
+#endif
 SYSCTL_INT(_hw_pci, OID_AUTO, enable_aspm, CTLFLAG_RDTUN, &pci_enable_aspm,
     0, "Enable support for PCIe Active State Power Management");
 
@@ -508,6 +516,27 @@ pci_find_class_from(uint8_t class, uint8_t subclass, device_t from)
 		}
 		if (dinfo->cfg.baseclass == class &&
 		    dinfo->cfg.subclass == subclass) {
+			return (dinfo->cfg.dev);
+		}
+	}
+
+	return (NULL);
+}
+
+device_t
+pci_find_base_class_from(uint8_t class, device_t from)
+{
+	struct pci_devinfo *dinfo;
+	bool found = false;
+
+	STAILQ_FOREACH(dinfo, &pci_devq, pci_links) {
+		if (from != NULL && found == false) {
+			if (from != dinfo->cfg.dev)
+				continue;
+			found = true;
+			continue;
+		}
+		if (dinfo->cfg.baseclass == class) {
 			return (dinfo->cfg.dev);
 		}
 	}
@@ -1511,6 +1540,7 @@ pci_find_cap_method(device_t dev, device_t child, int capability,
 	pcicfgregs *cfg = &dinfo->cfg;
 	uint32_t status;
 	uint8_t ptr;
+	int cnt;
 
 	/*
 	 * Check the CAP_LIST bit of the PCI status register first.
@@ -1537,9 +1567,11 @@ pci_find_cap_method(device_t dev, device_t child, int capability,
 	ptr = pci_read_config(child, ptr, 1);
 
 	/*
-	 * Traverse the capabilities list.
+	 * Traverse the capabilities list.  Limit by total theoretical
+	 * maximum number of caps: capability needs at least id and
+	 * next registers, and any type X header cannot contain caps.
 	 */
-	while (ptr != 0) {
+	for (cnt = 0; ptr != 0 && cnt < (PCIE_REGMAX - 0x40) / 2; cnt++) {
 		if (pci_read_config(child, ptr + PCICAP_ID, 1) == capability) {
 			if (capreg != NULL)
 				*capreg = ptr;
@@ -4083,7 +4115,6 @@ pci_add_resources(device_t bus, device_t dev, int force, uint32_t prefetchmask)
 			pci_add_map(bus, dev, q->arg1, rl, force, 0);
 
 	if (cfg->intpin > 0 && PCI_INTERRUPT_VALID(cfg->intline)) {
-#ifdef __PCI_REROUTE_INTERRUPT
 		/*
 		 * Try to re-route interrupts. Sometimes the BIOS or
 		 * firmware may leave bogus values in these registers.
@@ -4091,9 +4122,6 @@ pci_add_resources(device_t bus, device_t dev, int force, uint32_t prefetchmask)
 		 * have.
 		 */
 		pci_assign_interrupt(bus, dev, 1);
-#else
-		pci_assign_interrupt(bus, dev, 0);
-#endif
 	}
 
 	if (pci_usb_takeover && pci_get_class(dev) == PCIC_SERIALBUS &&
@@ -4495,7 +4523,8 @@ pci_attach(device_t dev)
 	domain = pcib_get_domain(dev);
 	busno = pcib_get_bus(dev);
 	pci_add_children(dev, domain, busno);
-	return (bus_generic_attach(dev));
+	bus_attach_children(dev);
+	return (0);
 }
 
 int
@@ -4509,9 +4538,7 @@ pci_detach(device_t dev)
 		return (error);
 	sc = device_get_softc(dev);
 	error = bus_release_resource(dev, PCI_RES_BUS, 0, sc->sc_bus);
-	if (error)
-		return (error);
-	return (device_delete_children(dev));
+	return (error);
 }
 
 static void

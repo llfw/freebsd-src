@@ -58,9 +58,9 @@
 #include <sys/zfs_znode.h>
 
 /*
- * Enable the experimental block cloning feature.  If this setting is 0, then
- * even if feature@block_cloning is enabled, attempts to clone blocks will act
- * as though the feature is disabled.
+ * Enables access to the block cloning feature. If this setting is 0, then even
+ * if feature@block_cloning is enabled, using functions and system calls that
+ * attempt to clone blocks will act as though the feature is disabled.
  */
 int zfs_bclone_enabled = 1;
 
@@ -71,7 +71,7 @@ int zfs_bclone_enabled = 1;
  * a copy of the file and is therefore not the default.  However, in certain
  * scenarios this behavior may be desirable so a tunable is provided.
  */
-static int zfs_bclone_wait_dirty = 0;
+int zfs_bclone_wait_dirty = 0;
 
 /*
  * Enable Direct I/O. If this setting is 0, then all I/O requests will be

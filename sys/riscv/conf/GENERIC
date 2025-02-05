@@ -83,11 +83,15 @@ device		rcons
 # pseudo devices
 device		clk
 device		hwreset
+device		nvmem
 device		phy
 device		regulator
 device		syscon
 device		syscon_power
 device		riscv_syscon
+
+# CPU frequency control
+device		cpufreq
 
 # Bus drivers
 device		pci
@@ -151,6 +155,7 @@ device		axidma		# Xilinx AXI DMA Controller
 
 # GPIO
 device		gpio
+device		fdt_pinctrl
 
 # SPI
 device		spibus
@@ -199,5 +204,6 @@ device		iicoc		# OpenCores I2C controller support
 
 # Include SoC specific configuration
 include		"std.allwinner"
+include		"std.eswin"
 include		"std.sifive"
 include		"std.starfive"

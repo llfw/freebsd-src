@@ -96,8 +96,8 @@
  * NOTE: With regard to VNETs the general rule is that callers do not set
  * curvnet. Exceptions to this rule include soabort(), sodisconnect(),
  * sofree(), sorele(), sonewconn() and sorflush(), which are usually called
- * from a pre-set VNET context.  sopoll() currently does not need a VNET
- * context to be set.
+ * from a pre-set VNET context.  sopoll_generic() currently does not need a
+ * VNET context to be set.
  */
 
 #include <sys/cdefs.h>
@@ -188,17 +188,17 @@ static int	filt_sowrite(struct knote *kn, long hint);
 static int	filt_soempty(struct knote *kn, long hint);
 fo_kqfilter_t	soo_kqfilter;
 
-static struct filterops soread_filtops = {
+static const struct filterops soread_filtops = {
 	.f_isfd = 1,
 	.f_detach = filt_sordetach,
 	.f_event = filt_soread,
 };
-static struct filterops sowrite_filtops = {
+static const struct filterops sowrite_filtops = {
 	.f_isfd = 1,
 	.f_detach = filt_sowdetach,
 	.f_event = filt_sowrite,
 };
-static struct filterops soempty_filtops = {
+static const struct filterops soempty_filtops = {
 	.f_isfd = 1,
 	.f_detach = filt_sowdetach,
 	.f_event = filt_soempty,
@@ -240,43 +240,58 @@ struct splice32 {
  * NB: The original sysctl somaxconn is still available but hidden
  * to prevent confusion about the actual purpose of this number.
  */
-static u_int somaxconn = SOMAXCONN;
+VNET_DEFINE_STATIC(u_int, somaxconn) = SOMAXCONN;
+#define	V_somaxconn	VNET(somaxconn)
 
 static int
 sysctl_somaxconn(SYSCTL_HANDLER_ARGS)
 {
 	int error;
-	int val;
+	u_int val;
 
-	val = somaxconn;
+	val = V_somaxconn;
 	error = sysctl_handle_int(oidp, &val, 0, req);
 	if (error || !req->newptr )
 		return (error);
 
 	/*
 	 * The purpose of the UINT_MAX / 3 limit, is so that the formula
-	 *   3 * so_qlimit / 2
+	 *   3 * sol_qlimit / 2
 	 * below, will not overflow.
          */
 
 	if (val < 1 || val > UINT_MAX / 3)
 		return (EINVAL);
 
-	somaxconn = val;
+	V_somaxconn = val;
 	return (0);
 }
 SYSCTL_PROC(_kern_ipc, OID_AUTO, soacceptqueue,
-    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, sizeof(int),
-    sysctl_somaxconn, "I",
+    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE | CTLFLAG_VNET, 0, sizeof(u_int),
+    sysctl_somaxconn, "IU",
     "Maximum listen socket pending connection accept queue size");
 SYSCTL_PROC(_kern_ipc, KIPC_SOMAXCONN, somaxconn,
-    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_SKIP | CTLFLAG_MPSAFE, 0,
-    sizeof(int), sysctl_somaxconn, "I",
+    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_SKIP | CTLFLAG_MPSAFE | CTLFLAG_VNET, 0,
+    sizeof(u_int), sysctl_somaxconn, "IU",
     "Maximum listen socket pending connection accept queue size (compat)");
 
-static int numopensockets;
-SYSCTL_INT(_kern_ipc, OID_AUTO, numopensockets, CTLFLAG_RD,
-    &numopensockets, 0, "Number of open sockets");
+static u_int numopensockets;
+static int
+sysctl_numopensockets(SYSCTL_HANDLER_ARGS)
+{
+	u_int val;
+
+#ifdef VIMAGE
+	if(!IS_DEFAULT_VNET(curvnet))
+		val = curvnet->vnet_sockcnt;
+	else
+#endif
+		val = numopensockets;
+	return (sysctl_handle_int(oidp, &val, 0, req));
+}
+SYSCTL_PROC(_kern_ipc, OID_AUTO, numopensockets,
+    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_MPSAFE | CTLFLAG_VNET, 0, sizeof(u_int),
+    sysctl_numopensockets, "IU", "Number of open sockets");
 
 /*
  * so_global_mtx protects so_gencnt, numopensockets, and the per-socket
@@ -1523,8 +1538,8 @@ solisten_proto(struct socket *so, int backlog)
 	so->so_options |= SO_ACCEPTCONN;
 
 listening:
-	if (backlog < 0 || backlog > somaxconn)
-		backlog = somaxconn;
+	if (backlog < 0 || backlog > V_somaxconn)
+		backlog = V_somaxconn;
 	so->sol_qlimit = backlog;
 
 	mtx_unlock(&so->so_snd_mtx);
@@ -2015,11 +2030,11 @@ sopeeraddr(struct socket *so, struct sockaddr *sa)
 #endif
 	int error;
 
-	CURVNET_SET(so->so_vnet);
+	CURVNET_ASSERT_SET();
+
 	error = so->so_proto->pr_peeraddr(so, sa);
 	KASSERT(sa->sa_len <= len,
 	    ("%s: protocol %p sockaddr overflow", __func__, so->so_proto));
-	CURVNET_RESTORE();
 
 	return (error);
 }
@@ -4390,20 +4405,7 @@ sohasoutofband(struct socket *so)
 }
 
 int
-sopoll(struct socket *so, int events, struct ucred *active_cred,
-    struct thread *td)
-{
-
-	/*
-	 * We do not need to set or assert curvnet as long as everyone uses
-	 * sopoll_generic().
-	 */
-	return (so->so_proto->pr_sopoll(so, events, active_cred, td));
-}
-
-int
-sopoll_generic(struct socket *so, int events, struct ucred *active_cred,
-    struct thread *td)
+sopoll_generic(struct socket *so, int events, struct thread *td)
 {
 	int revents;
 

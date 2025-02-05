@@ -176,6 +176,11 @@ static void vm_free_memmap(struct vm *vm, int ident);
 static bool sysmem_mapping(struct vm *vm, struct mem_map *mm);
 static void vcpu_notify_event_locked(struct vcpu *vcpu);
 
+/* global statistics */
+VMM_STAT(VMEXIT_COUNT, "total number of vm exits");
+VMM_STAT(VMEXIT_IRQ, "number of vmexits for an irq");
+VMM_STAT(VMEXIT_UNHANDLED, "number of vmexits for an unhandled exception");
+
 /*
  * Upper limit on vm_maxcpu. We could increase this to 28 bits, but this
  * is a safe value for now.
@@ -254,21 +259,26 @@ vmm_handler(module_t mod, int what, void *arg)
 
 	switch (what) {
 	case MOD_LOAD:
-		/* TODO: check if has_hyp here? */
 		error = vmmdev_init();
 		if (error != 0)
 			break;
 		error = vmm_init();
 		if (error == 0)
 			vmm_initialized = true;
+		else
+			(void)vmmdev_cleanup();
 		break;
 	case MOD_UNLOAD:
-		/* TODO: check if has_hyp here? */
 		error = vmmdev_cleanup();
 		if (error == 0 && vmm_initialized) {
 			error = vmmops_modcleanup();
-			if (error)
+			if (error) {
+				/*
+				 * Something bad happened - prevent new
+				 * VMs from being created
+				 */
 				vmm_initialized = false;
+			}
 		}
 		break;
 	default:
@@ -287,10 +297,9 @@ static moduledata_t vmm_kmod = {
 /*
  * vmm initialization has the following dependencies:
  *
- * - HYP initialization requires smp_rendezvous() and therefore must happen
- *   after SMP is fully functional (after SI_SUB_SMP).
+ * - vmm device initialization requires an initialized devfs.
  */
-DECLARE_MODULE(vmm, vmm_kmod, SI_SUB_SMP + 1, SI_ORDER_ANY);
+DECLARE_MODULE(vmm, vmm_kmod, SI_SUB_DEVFS + 1, SI_ORDER_ANY);
 MODULE_VERSION(vmm, 1);
 
 static void
@@ -1121,8 +1130,7 @@ vcpu_set_state_locked(struct vcpu *vcpu, enum vcpu_state newstate,
 	if (from_idle) {
 		while (vcpu->state != VCPU_IDLE) {
 			vcpu_notify_event_locked(vcpu);
-			msleep_spin(&vcpu->state, &vcpu->mtx, "vmstat",
-			    hz / 1000);
+			msleep_spin(&vcpu->state, &vcpu->mtx, "vmstat", hz);
 		}
 	} else {
 		KASSERT(vcpu->state != VCPU_IDLE, ("invalid transition from "
@@ -1410,6 +1418,9 @@ vm_handle_wfi(struct vcpu *vcpu, struct vm_exit *vme, bool *retu)
 		if (riscv_check_ipi(vcpu->cookie, false))
 			break;
 
+		if (riscv_check_interrupts_pending(vcpu->cookie))
+			break;
+
 		if (vcpu_should_yield(vcpu))
 			break;
 
@@ -1418,7 +1429,7 @@ vm_handle_wfi(struct vcpu *vcpu, struct vm_exit *vme, bool *retu)
 		 * XXX msleep_spin() cannot be interrupted by signals so
 		 * wake up periodically to check pending signals.
 		 */
-		msleep_spin(vcpu, &vcpu->mtx, "vmidle", hz / 1000);
+		msleep_spin(vcpu, &vcpu->mtx, "vmidle", hz);
 		vcpu_require_state_locked(vcpu, VCPU_FROZEN);
 	}
 	vcpu_unlock(vcpu);

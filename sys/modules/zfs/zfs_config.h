@@ -210,7 +210,14 @@
 /* Define if revalidate_disk() in block_device_operations */
 /* #undef HAVE_BLOCK_DEVICE_OPERATIONS_REVALIDATE_DISK */
 
-/* check_disk_change() exists */
+/* Define to 1 if you have the Mac OS X function
+   CFLocaleCopyPreferredLanguages in the CoreFoundation framework. */
+/* #undef HAVE_CFLOCALECOPYPREFERREDLANGUAGES */
+
+/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
+   the CoreFoundation framework. */
+/* #undef HAVE_CFPREFERENCESCOPYAPPVALUE */
+
 /* #undef HAVE_CHECK_DISK_CHANGE */
 
 /* copy_splice_read exists */
@@ -226,8 +233,8 @@
 /* DECLARE_EVENT_CLASS() is available */
 /* #undef HAVE_DECLARE_EVENT_CLASS */
 
-/* dequeue_signal() takes a task argument */
-/* #undef HAVE_DEQUEUE_SIGNAL_3ARG_TASK */
+/* 3-arg dequeue_signal() takes a type argument */
+/* #undef HAVE_DEQUEUE_SIGNAL_3ARG_TYPE */
 
 /* dequeue_signal() takes 4 arguments */
 /* #undef HAVE_DEQUEUE_SIGNAL_4ARG */
@@ -394,12 +401,6 @@
 /* iops->symlink() takes struct user_namespace* */
 /* #undef HAVE_IOPS_SYMLINK_USERNS */
 
-/* iov_iter_get_pages() is available */
-/* #undef HAVE_IOV_ITER_GET_PAGES */
-
-/* iov_iter_get_pages2() is available */
-/* #undef HAVE_IOV_ITER_GET_PAGES2 */
-
 /* iov_iter_type() is available */
 /* #undef HAVE_IOV_ITER_TYPE */
 
@@ -408,6 +409,9 @@
 
 /* iter_iov() is available */
 /* #undef HAVE_ITER_IOV */
+
+/* iter_is_ubuf() is available */
+/* #undef HAVE_ITER_IS_UBUF */
 
 /* kernel has kernel_fpu_* functions */
 /* #undef HAVE_KERNEL_FPU */
@@ -504,6 +508,9 @@
 
 /* Define if host toolchain supports PCLMULQDQ */
 #define HAVE_PCLMULQDQ 1
+
+/* pin_user_pages_unlocked() is available */
+/* #undef HAVE_PIN_USER_PAGES_UNLOCKED */
 
 /* proc_handler ctl_table arg is const */
 /* #undef HAVE_PROC_HANDLER_CTL_TABLE_CONST */
@@ -669,32 +676,20 @@
 /* fops->dedupe_file_range() is available */
 /* #undef HAVE_VFS_DEDUPE_FILE_RANGE */
 
-/* aops->direct_IO() uses iov_iter without rw */
-/* #undef HAVE_VFS_DIRECT_IO_ITER */
-
-/* aops->direct_IO() uses iov_iter with offset */
-/* #undef HAVE_VFS_DIRECT_IO_ITER_OFFSET */
-
 /* filemap_dirty_folio exists */
 /* #undef HAVE_VFS_FILEMAP_DIRTY_FOLIO */
 
 /* generic_copy_file_range() is available */
 /* #undef HAVE_VFS_GENERIC_COPY_FILE_RANGE */
 
-/* invalidate_folio exists */
-/* #undef HAVE_VFS_INVALIDATE_FOLIO */
-
-/* All required iov_iter interfaces are available */
-/* #undef HAVE_VFS_IOV_ITER */
+/* migrate_folio exists */
+/* #undef HAVE_VFS_MIGRATE_FOLIO */
 
 /* address_space_operations->readpages exists */
 /* #undef HAVE_VFS_READPAGES */
 
 /* read_folio exists */
 /* #undef HAVE_VFS_READ_FOLIO */
-
-/* release_folio exists */
-/* #undef HAVE_VFS_RELEASE_FOLIO */
 
 /* fops->remap_file_range() is available */
 /* #undef HAVE_VFS_REMAP_FILE_RANGE */
@@ -792,7 +787,7 @@
 /* #undef ZFS_DEVICE_MINOR */
 
 /* Define the project alias string. */
-#define ZFS_META_ALIAS "zfs-2.3.99-31-FreeBSD_gb2f6de7b5"
+#define ZFS_META_ALIAS "zfs-2.3.99-170-FreeBSD_g34205715e"
 
 /* Define the project author. */
 #define ZFS_META_AUTHOR "OpenZFS"
@@ -801,7 +796,7 @@
 /* #undef ZFS_META_DATA */
 
 /* Define the maximum compatible kernel version. */
-#define ZFS_META_KVER_MAX "6.11"
+#define ZFS_META_KVER_MAX "6.12"
 
 /* Define the minimum compatible kernel version. */
 #define ZFS_META_KVER_MIN "4.18"
@@ -822,7 +817,7 @@
 #define ZFS_META_NAME "zfs"
 
 /* Define the project release. */
-#define ZFS_META_RELEASE "31-FreeBSD_gb2f6de7b5"
+#define ZFS_META_RELEASE "170-FreeBSD_g34205715e"
 
 /* Define the project version. */
 #define ZFS_META_VERSION "2.3.99"

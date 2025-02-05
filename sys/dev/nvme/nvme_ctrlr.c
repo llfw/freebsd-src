@@ -820,7 +820,13 @@ nvme_ctrlr_construct_and_submit_aer(struct nvme_controller *ctrlr,
 	struct nvme_request *req;
 
 	aer->ctrlr = ctrlr;
-	req = nvme_allocate_request_null(nvme_ctrlr_async_event_cb, aer);
+	/*
+	 * XXX-MJ this should be M_WAITOK but we might be in a non-sleepable
+	 * callback context.  AER completions should be handled on a dedicated
+	 * thread.
+	 */
+	req = nvme_allocate_request_null(M_NOWAIT, nvme_ctrlr_async_event_cb,
+	    aer);
 	aer->req = req;
 
 	/*
@@ -1272,12 +1278,12 @@ nvme_ctrlr_passthrough_cmd(struct nvme_controller *ctrlr,
 				goto err;
 			}
 			req = nvme_allocate_request_vaddr(buf->b_data, pt->len,
-			    nvme_pt_done, pt);
+			    M_WAITOK, nvme_pt_done, pt);
 		} else
 			req = nvme_allocate_request_vaddr(pt->buf, pt->len,
-			    nvme_pt_done, pt);
+			    M_WAITOK, nvme_pt_done, pt);
 	} else
-		req = nvme_allocate_request_null(nvme_pt_done, pt);
+		req = nvme_allocate_request_null(M_WAITOK, nvme_pt_done, pt);
 
 	/* Assume user space already converted to little-endian */
 	req->cmd.opc = pt->cmd.opc;
@@ -1363,14 +1369,14 @@ nvme_ctrlr_linux_passthru_cmd(struct nvme_controller *ctrlr,
 				ret = EFAULT;
 				goto err;
 			}
-			req = nvme_allocate_request_vaddr(buf->b_data, npc->data_len,
-			    nvme_npc_done, npc);
+			req = nvme_allocate_request_vaddr(buf->b_data,
+			    npc->data_len, M_WAITOK, nvme_npc_done, npc);
 		} else
 			req = nvme_allocate_request_vaddr(
 			    (void *)(uintptr_t)npc->addr, npc->data_len,
-			    nvme_npc_done, npc);
+			    M_WAITOK, nvme_npc_done, npc);
 	} else
-		req = nvme_allocate_request_null(nvme_npc_done, npc);
+		req = nvme_allocate_request_null(M_WAITOK, nvme_npc_done, npc);
 
 	req->cmd.opc = npc->opcode;
 	req->cmd.fuse = npc->flags;
@@ -1436,6 +1442,9 @@ nvme_ctrlr_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int flag,
 	}
 	case NVME_GET_MAX_XFER_SIZE:
 		*(uint64_t *)arg = ctrlr->max_xfer_size;
+		break;
+	case NVME_GET_CONTROLLER_DATA:
+		memcpy(arg, &ctrlr->cdata, sizeof(ctrlr->cdata));
 		break;
 	/* Linux Compatible (see nvme_linux.h) */
 	case NVME_IOCTL_ID:

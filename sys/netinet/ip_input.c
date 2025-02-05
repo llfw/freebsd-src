@@ -521,11 +521,6 @@ ip_input(struct mbuf *m)
 			goto bad;
 		}
 	}
-	/* The unspecified address can appear only as a src address - RFC1122 */
-	if (__predict_false(ntohl(ip->ip_dst.s_addr) == INADDR_ANY)) {
-		IPSTAT_INC(ips_badaddr);
-		goto bad;
-	}
 
 	if (m->m_pkthdr.csum_flags & CSUM_IP_CHECKED) {
 		sum = !(m->m_pkthdr.csum_flags & CSUM_IP_VALID);
@@ -641,6 +636,17 @@ tooshort:
 		}
 	}
 passin:
+	/*
+	 * The unspecified address can appear only as a src address - RFC1122.
+	 *
+	 * The check is deferred to here to give firewalls a chance to block
+	 * (and log) such packets.  ip_tryforward() will not process such
+	 * packets.
+	 */
+	if (__predict_false(ntohl(ip->ip_dst.s_addr) == INADDR_ANY)) {
+		IPSTAT_INC(ips_badaddr);
+		goto bad;
+	}
 
 	/*
 	 * Process options and, if not destined for us,
@@ -942,6 +948,18 @@ ip_forward(struct mbuf *m, int srcrt)
 	flowid = m->m_pkthdr.flowid;
 	ro.ro_nh = fib4_lookup(M_GETFIB(m), ip->ip_dst, 0, NHR_REF, flowid);
 	if (ro.ro_nh != NULL) {
+		if (ro.ro_nh->nh_flags & (NHF_BLACKHOLE | NHF_BROADCAST)) {
+			IPSTAT_INC(ips_cantforward);
+			m_freem(m);
+			NH_FREE(ro.ro_nh);
+			return;
+		}
+		if (ro.ro_nh->nh_flags & NHF_REJECT) {
+			IPSTAT_INC(ips_cantforward);
+			NH_FREE(ro.ro_nh);
+			icmp_error(m, ICMP_UNREACH, ICMP_UNREACH_HOST, 0, 0);
+			return;
+		}
 		ia = ifatoia(ro.ro_nh->nh_ifa);
 	} else
 		ia = NULL;

@@ -74,22 +74,6 @@ pfr_report_error(struct pfr_table *tbl, struct pfioc_table *io,
 }
 
 int
-pfr_clr_tables(struct pfr_table *filter, int *ndel, int flags)
-{
-	struct pfioc_table io;
-
-	bzero(&io, sizeof io);
-	io.pfrio_flags = flags;
-	if (filter != NULL)
-		io.pfrio_table = *filter;
-	if (ioctl(dev, DIOCRCLRTABLES, &io))
-		return (-1);
-	if (ndel != NULL)
-		*ndel = io.pfrio_ndel;
-	return (0);
-}
-
-int
 pfr_add_tables(struct pfr_table *tbl, int size, int *nadd, int flags)
 {
 	struct pfioc_table io;
@@ -283,6 +267,29 @@ pfr_get_astats(struct pfr_table *tbl, struct pfr_astats *addr, int *size,
 		return (-1);
 	}
 	*size = io.pfrio_size;
+	return (0);
+}
+
+int
+pfr_clr_astats(struct pfr_table *tbl, struct pfr_addr *addr, int size,
+    int *nzero, int flags)
+{
+	struct pfioc_table io;
+
+	if (size < 0 || !tbl || (size && !addr)) {
+		errno = EINVAL;
+		return (-1);
+	}
+	bzero(&io, sizeof io);
+	io.pfrio_flags = flags;
+	io.pfrio_table = *tbl;
+	io.pfrio_buffer = addr;
+	io.pfrio_esize = sizeof(*addr);
+	io.pfrio_size = size;
+	if (ioctl(dev, DIOCRCLRASTATS, &io) == -1)
+		return (-1);
+	if (nzero)
+		*nzero = io.pfrio_nzero;
 	return (0);
 }
 

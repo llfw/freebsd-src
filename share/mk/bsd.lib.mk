@@ -118,6 +118,15 @@ CXXFLAGS+= -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-cl
 .endif
 .endif
 
+# Zero used registers on return (mitigate some ROP)
+.if ${MK_ZEROREGS} != "no"
+.if ${COMPILER_FEATURES:Mzeroregs}
+ZEROREG_TYPE?= used
+CFLAGS+= -fzero-call-used-regs=${ZEROREG_TYPE}
+CXXFLAGS+= -fzero-call-used-regs=${ZEROREG_TYPE}
+.endif
+.endif
+
 # bsd.sanitizer.mk is not installed, so don't require it (e.g. for ports).
 .sinclude "bsd.sanitizer.mk"
 
@@ -161,7 +170,7 @@ PO_FLAG=-pg
 	${CTFCONVERT_CMD}
 
 .c.nossppico:
-	${CC} ${PICFLAG} -DPIC ${SHARED_CFLAGS:C/^-fstack-protector.*$//:C/^-fsanitize.*$//} ${CFLAGS:C/^-fstack-protector.*$//:C/^-fsanitize.*$//} -c ${.IMPSRC} -o ${.TARGET}
+	${CC} ${PICFLAG} -DPIC ${SHARED_CFLAGS:C/^-fstack-protector.*$//:C/^-fstack-clash-protection.*$//:C/^-fsanitize.*$//} ${CFLAGS:C/^-fstack-protector.*$//:C/^-fstack-clash-protection.*$//:C/^-fsanitize.*$//} -c ${.IMPSRC} -o ${.TARGET}
 	${CTFCONVERT_CMD}
 
 .c.pieo:
@@ -175,7 +184,7 @@ PO_FLAG=-pg
 	${CXX} ${PICFLAG} -DPIC ${SHARED_CXXFLAGS} ${CXXFLAGS} -c ${.IMPSRC} -o ${.TARGET}
 
 .cc.nossppico .C.nossppico .cpp.nossppico .cxx.nossppico:
-	${CXX} ${PICFLAG} -DPIC ${SHARED_CXXFLAGS:C/^-fstack-protector.*$//:C/^-fsanitize.*$//} ${CXXFLAGS:C/^-fstack-protector.*$//:C/^-fsanitize.*$//} -c ${.IMPSRC} -o ${.TARGET}
+	${CXX} ${PICFLAG} -DPIC ${SHARED_CXXFLAGS:C/^-fstack-protector.*$//:C/^-fstack-clash-protection.*$//:C/^-fsanitize.*$//} ${CXXFLAGS:C/^-fstack-protector.*$//:C/^-fstack-clash-protection.*$//:C/^-fsanitize.*$//} -c ${.IMPSRC} -o ${.TARGET}
 
 .cc.pieo .C.pieo .cpp.pieo .cxx.pieo:
 	${CXX} ${PIEFLAG} ${SHARED_CXXFLAGS} ${CXXFLAGS} -c ${.IMPSRC} -o ${.TARGET}
@@ -189,7 +198,7 @@ PO_FLAG=-pg
 	${CTFCONVERT_CMD}
 
 .f.nossppico:
-	${FC} ${PICFLAG} -DPIC ${FFLAGS:C/^-fstack-protector.*$//} -o ${.TARGET} -c ${.IMPSRC}
+	${FC} ${PICFLAG} -DPIC ${FFLAGS:C/^-fstack-protector.*$//:C/^-fstack-clash-protection.*$//} -o ${.TARGET} -c ${.IMPSRC}
 	${CTFCONVERT_CMD}
 
 .s.po .s.pico .s.nossppico .s.pieo:
@@ -208,7 +217,7 @@ PO_FLAG=-pg
 
 .asm.nossppico:
 	${CC:N${CCACHE_BIN}} -x assembler-with-cpp ${PICFLAG} -DPIC \
-	    ${CFLAGS:C/^-fstack-protector.*$//} ${ACFLAGS} -c ${.IMPSRC} -o ${.TARGET}
+	    ${CFLAGS:C/^-fstack-protector.*$//:C/^-fstack-clash-protection.*$//} ${ACFLAGS} -c ${.IMPSRC} -o ${.TARGET}
 	${CTFCONVERT_CMD}
 
 .asm.pieo:
@@ -227,7 +236,7 @@ PO_FLAG=-pg
 	${CTFCONVERT_CMD}
 
 .S.nossppico:
-	${CC:N${CCACHE_BIN}} ${PICFLAG} -DPIC ${CFLAGS:C/^-fstack-protector.*$//} ${ACFLAGS} \
+	${CC:N${CCACHE_BIN}} ${PICFLAG} -DPIC ${CFLAGS:C/^-fstack-protector.*$//:C/^-fstack-clash-protection.*$//} ${ACFLAGS} \
 	    -c ${.IMPSRC} -o ${.TARGET}
 	${CTFCONVERT_CMD}
 
@@ -245,7 +254,8 @@ SHLIB_NAME_FULL=${SHLIB_NAME}.full
 # Use ${DEBUGDIR} for base system debug files, else .debug subdirectory
 .if ${_SHLIBDIR} == "/boot" ||\
     ${SHLIBDIR:C%/lib(/.*)?$%/lib%} == "/lib" ||\
-    ${SHLIBDIR:C%/usr/(tests/)?lib(32|exec)?(/.*)?%/usr/lib%} == "/usr/lib"
+    ${SHLIBDIR:C%/usr/lib(32|exec)?(/.*)?%/usr/lib%} == "/usr/lib" ||\
+    ${SHLIBDIR:C%/usr/tests(/.*)?%/usr/tests%} == "/usr/tests"
 DEBUGFILEDIR=${DEBUGDIR}${_SHLIBDIR}
 .else
 DEBUGFILEDIR=${_SHLIBDIR}/.debug
@@ -290,24 +300,12 @@ _STATICLIB_SUFFIX=	_real
 _LIBS=		lib${LIB_PRIVATE}${LIB}${_STATICLIB_SUFFIX}.a
 
 lib${LIB_PRIVATE}${LIB}${_STATICLIB_SUFFIX}.a: ${OBJS} ${STATICOBJS}
-	@${ECHO} building static ${LIB} library
+	@${ECHO} Building static ${LIB} library
 	@rm -f ${.TARGET}
 	${AR} ${ARFLAGS} ${.TARGET} ${OBJS} ${STATICOBJS} ${ARADD}
 .endif
 
 .if !defined(INTERNALLIB)
-
-.if ${MK_PROFILE} != "no" && defined(LIB) && !empty(LIB)
-_LIBS+=		lib${LIB_PRIVATE}${LIB}_p.a
-POBJS+=		${OBJS:.o=.po} ${STATICOBJS:.o=.po}
-DEPENDOBJS+=	${POBJS}
-CLEANFILES+=	${POBJS}
-
-lib${LIB_PRIVATE}${LIB}_p.a: ${POBJS}
-	@${ECHO} building profiled ${LIB} library
-	@rm -f ${.TARGET}
-	${AR} ${ARFLAGS} ${.TARGET} ${POBJS} ${ARADD}
-.endif
 
 .if defined(LLVM_LINK)
 lib${LIB_PRIVATE}${LIB}.bc: ${BCOBJS}
@@ -356,7 +354,7 @@ CLEANFILES+=	${SHLIB_LINK}
 .endif
 
 ${SHLIB_NAME_FULL}: ${SOBJS}
-	@${ECHO} building shared library ${SHLIB_NAME}
+	@${ECHO} Building shared library ${SHLIB_NAME}
 	@rm -f ${SHLIB_NAME} ${SHLIB_LINK}
 .if defined(SHLIB_LINK) && !commands(${SHLIB_LINK:R}.ld) && ${MK_DEBUG_FILES} == "no"
 	# Note: This uses ln instead of ${INSTALL_LIBSYMLINK} since we are in OBJDIR
@@ -387,7 +385,7 @@ ${SHLIB_NAME}.debug: ${SHLIB_NAME_FULL}
 _LIBS+=		lib${LIB_PRIVATE}${LIB}_pic.a
 
 lib${LIB_PRIVATE}${LIB}_pic.a: ${SOBJS}
-	@${ECHO} building special pic ${LIB} library
+	@${ECHO} Building special pic ${LIB} library
 	@rm -f ${.TARGET}
 	${AR} ${ARFLAGS} ${.TARGET} ${SOBJS} ${ARADD}
 .endif
@@ -399,7 +397,7 @@ CLEANFILES+=	${NOSSPSOBJS}
 _LIBS+=		lib${LIB_PRIVATE}${LIB}_nossp_pic.a
 
 lib${LIB_PRIVATE}${LIB}_nossp_pic.a: ${NOSSPSOBJS}
-	@${ECHO} building special nossp pic ${LIB} library
+	@${ECHO} Building special nossp pic ${LIB} library
 	@rm -f ${.TARGET}
 	${AR} ${ARFLAGS} ${.TARGET} ${NOSSPSOBJS} ${ARADD}
 .endif
@@ -414,7 +412,7 @@ CLEANFILES+=	${PIEOBJS}
 _LIBS+=		lib${LIB_PRIVATE}${LIB}_pie.a
 
 lib${LIB_PRIVATE}${LIB}_pie.a: ${PIEOBJS}
-	@${ECHO} building pie ${LIB} library
+	@${ECHO} Building pie ${LIB} library
 	@rm -f ${.TARGET}
 	${AR} ${ARFLAGS} ${.TARGET} ${PIEOBJS} ${ARADD}
 .endif
@@ -495,10 +493,6 @@ _libinstall:
 .if defined(LIB) && !empty(LIB) && ${MK_INSTALLLIB} != "no"
 	${INSTALL} ${TAG_ARGS:D${TAG_ARGS},dev} -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \
 	    ${_INSTALLFLAGS} lib${LIB_PRIVATE}${LIB}${_STATICLIB_SUFFIX}.a ${DESTDIR}${_LIBDIR}/
-.if ${MK_PROFILE} != "no"
-	${INSTALL} ${TAG_ARGS:D${TAG_ARGS},dev} -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \
-	    ${_INSTALLFLAGS} lib${LIB_PRIVATE}${LIB}_p.a ${DESTDIR}${_LIBDIR}/
-.endif
 .endif
 .if defined(SHLIB_NAME)
 	${INSTALL} ${TAG_ARGS} ${STRIP} -o ${LIBOWN} -g ${LIBGRP} -m ${LIBMODE} \

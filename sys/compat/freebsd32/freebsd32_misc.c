@@ -86,6 +86,7 @@
 #include <sys/timex.h>
 #include <sys/unistd.h>
 #include <sys/ucontext.h>
+#include <sys/ucred.h>
 #include <sys/vnode.h>
 #include <sys/wait.h>
 #include <sys/ipc.h>
@@ -115,6 +116,7 @@
 #endif
 
 #include <security/audit/audit.h>
+#include <security/mac/mac_syscalls.h>
 
 #include <compat/freebsd32/freebsd32_util.h>
 #include <compat/freebsd32/freebsd32.h>
@@ -2249,6 +2251,7 @@ copy_stat(struct stat *in, struct stat32 *out)
 	CP(*in, *out, st_blksize);
 	CP(*in, *out, st_flags);
 	CP(*in, *out, st_gen);
+	CP(*in, *out, st_filerev);
 	TS_CP(*in, *out, st_birthtim);
 	out->st_padding0 = 0;
 	out->st_padding1 = 0;
@@ -3860,6 +3863,7 @@ freebsd32_procctl(struct thread *td, struct freebsd32_procctl_args *uap)
 	case PROC_TRAPCAP_CTL:
 	case PROC_NO_NEW_PRIVS_CTL:
 	case PROC_WXMAP_CTL:
+	case PROC_LOGSIGEXIT_CTL:
 		error = copyin(PTRIN(uap->data), &flags, sizeof(flags));
 		if (error != 0)
 			return (error);
@@ -3895,6 +3899,7 @@ freebsd32_procctl(struct thread *td, struct freebsd32_procctl_args *uap)
 	case PROC_TRAPCAP_STATUS:
 	case PROC_NO_NEW_PRIVS_STATUS:
 	case PROC_WXMAP_STATUS:
+	case PROC_LOGSIGEXIT_STATUS:
 		data = &flags;
 		break;
 	case PROC_PDEATHSIG_CTL:
@@ -3928,6 +3933,7 @@ freebsd32_procctl(struct thread *td, struct freebsd32_procctl_args *uap)
 	case PROC_TRAPCAP_STATUS:
 	case PROC_NO_NEW_PRIVS_STATUS:
 	case PROC_WXMAP_STATUS:
+	case PROC_LOGSIGEXIT_STATUS:
 		if (error == 0)
 			error = copyout(&flags, uap->data, sizeof(flags));
 		break;
@@ -4171,3 +4177,10 @@ ofreebsd32_sethostid(struct thread *td, struct ofreebsd32_sethostid_args *uap)
 	    sizeof(hostid), NULL, 0));
 }
 #endif
+
+int
+freebsd32_setcred(struct thread *td, struct freebsd32_setcred_args *uap)
+{
+	/* Last argument is 'is_32bit'. */
+	return (user_setcred(td, uap->flags, uap->wcred, uap->size, true));
+}

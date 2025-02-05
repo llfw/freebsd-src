@@ -2192,31 +2192,20 @@ zio_delay_interrupt(zio_t *zio)
 		} else {
 			taskqid_t tid;
 			hrtime_t diff = zio->io_target_timestamp - now;
-			clock_t expire_at_tick = ddi_get_lbolt() +
-			    NSEC_TO_TICK(diff);
+			int ticks = MAX(1, NSEC_TO_TICK(diff));
+			clock_t expire_at_tick = ddi_get_lbolt() + ticks;
 
 			DTRACE_PROBE3(zio__delay__hit, zio_t *, zio,
 			    hrtime_t, now, hrtime_t, diff);
 
-			if (NSEC_TO_TICK(diff) == 0) {
-				/* Our delay is less than a jiffy - just spin */
-				zfs_sleep_until(zio->io_target_timestamp);
-				zio_interrupt(zio);
-			} else {
+			tid = taskq_dispatch_delay(system_taskq, zio_interrupt,
+			    zio, TQ_NOSLEEP, expire_at_tick);
+			if (tid == TASKQID_INVALID) {
 				/*
-				 * Use taskq_dispatch_delay() in the place of
-				 * OpenZFS's timeout_generic().
+				 * Couldn't allocate a task.  Just finish the
+				 * zio without a delay.
 				 */
-				tid = taskq_dispatch_delay(system_taskq,
-				    zio_interrupt, zio, TQ_NOSLEEP,
-				    expire_at_tick);
-				if (tid == TASKQID_INVALID) {
-					/*
-					 * Couldn't allocate a task.  Just
-					 * finish the zio without a delay.
-					 */
-					zio_interrupt(zio);
-				}
+				zio_interrupt(zio);
 			}
 		}
 		return;
@@ -4617,13 +4606,16 @@ zio_vdev_io_assess(zio_t *zio)
 	}
 
 	/*
-	 * If a cache flush returns ENOTSUP or ENOTTY, we know that no future
+	 * If a cache flush returns ENOTSUP we know that no future
 	 * attempts will ever succeed. In this case we set a persistent
-	 * boolean flag so that we don't bother with it in the future.
+	 * boolean flag so that we don't bother with it in the future, and
+	 * then we act like the flush succeeded.
 	 */
-	if ((zio->io_error == ENOTSUP || zio->io_error == ENOTTY) &&
-	    zio->io_type == ZIO_TYPE_FLUSH && vd != NULL)
+	if (zio->io_error == ENOTSUP && zio->io_type == ZIO_TYPE_FLUSH &&
+	    vd != NULL) {
 		vd->vdev_nowritecache = B_TRUE;
+		zio->io_error = 0;
+	}
 
 	if (zio->io_error)
 		zio->io_pipeline = ZIO_INTERLOCK_PIPELINE;
