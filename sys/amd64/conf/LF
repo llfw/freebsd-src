@@ -41,6 +41,8 @@ device		da
 # USB
 device		usb
 device		usbhid
+device		hid
+device		hidbus
 device		ohci
 device		uhci
 device		ehci
