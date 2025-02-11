@@ -1,0 +1,11 @@
+# le-fay.org pf kernel
+# This includes pf (but not ipfw or altq) with pf default to drop.
+
+include		"LF"
+ident		LF-PF
+
+# PF
+device		pf
+device		pflog
+device		pfsync
+options		PF_DEFAULT_TO_DROP

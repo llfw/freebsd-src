@@ -33,6 +33,11 @@ options 	MAC			# TrustedBSD MAC Framework
 #options 	KDTRACE_HOOKS		# Kernel DTrace hooks
 #options 	DDB_CTF			# Kernel ELF linker loads CTF data
 options 	INCLUDE_CONFIG_FILE
+options		ZFS
+options		MSDOSFS
+options		PROCFS
+options		PSEUDOFS
+options		FFS
 options		SOFTUPDATES
 options		UFS_ACL
 options		UFS_DIRHASH
@@ -44,6 +49,11 @@ options 	CC_CUBIC		# include CUBIC congestion control
 options		TCP_BLACKBOX
 options		TCP_HHOOK
 options		TCP_RFC7413
+options		NFSD
+options		NFSCL
+options		SYSVSHM
+options		SYSVMSG
+options		SYSVSEM
 
 options 	KDB
 options 	KDB_TRACE
@@ -55,3 +65,10 @@ device		ether
 device		bpf
 # KERN_TLS requires crypto
 device		crypto
+device		nvme
+device		if_bridge
+device		filemon
+device		tuntap
+device		vlan
+device		nmdm
+device		epair

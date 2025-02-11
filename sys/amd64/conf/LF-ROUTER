@@ -1,10 +1,8 @@
 # le-fay.org router kernel
 # This includes pf and ipfw with pf default to drop.
 
-cpu		HAMMER
-ident		LF
-
-include "LF"
+include		"LF"
+ident		LF-ROUTER
 
 # PF
 device		pf

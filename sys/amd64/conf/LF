@@ -1,4 +1,4 @@
-# le-fay.org standard kernel - based on MINIMAL
+# le-fay.org standard kernel for amd64
 
 cpu		HAMMER
 ident		LF
@@ -11,11 +11,27 @@ makeoptions	DEBUG=-g		# Build kernel with gdb(1) debug symbols
 
 options 	HWPMC_HOOKS
 
+# General amd64-specific options (MI options should go in std.lf).
 device		acpi
+device		acpi_wmi
 options		IOMMU
 options		PCI_IOV
 device		pci
 device		uart
+device		efirt
+device		aesni
+device		rdrand_rng
+device		cpufreq
+device		amdtemp
+device		amdsmn
+device		cxgbe
+device		ahci
+device		mps
+device		xhci
+device		intpm
+device		smbus
+device		iicsmb
+device		cpuctl
 
 # LinuxKPI requires firmware
 device		firmware
@@ -38,3 +54,14 @@ device		xentimer
 # AT keyboard, for dryad
 device		atkbd
 device		atkbdc
+
+# VirtIO for bhyve/kvm guests
+options		P9FS
+device		virtio
+device		virtio_pci
+device		virtio_p9fs
+device		virtio_blk
+device		virtio_scsi
+device		virtio_balloon
+device		vtnet
+
