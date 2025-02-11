@@ -27,7 +27,6 @@ device		amdsmn
 device		cxgbe
 device		ahci
 device		mps
-device		xhci
 device		intpm
 device		smbus
 device		iicbus
@@ -36,6 +35,20 @@ device		iic
 device		ic
 device		iicsmb
 device		cpuctl
+device		scbus
+device		da
+
+# USB
+device		usb
+device		usbhid
+device		ohci
+device		uhci
+device		ehci
+device		xhci
+device		ukbd
+device		hkbd
+device		ums
+device		umass
 
 # LinuxKPI requires firmware
 device		firmware
