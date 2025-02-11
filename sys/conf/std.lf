@@ -1,19 +1,15 @@
 # le-fay.org standard options (arch-indep)
 
 # Enabled for now since we run into quite a few of these.
-options         WITNESS                 # Enable checks to detect deadlocks and cycles
-options         WITNESS_SKIPSPIN        # Don't run witness on spinlocks for speed
+#options         WITNESS                 # Enable checks to detect deadlocks and cycles
+#options         WITNESS_SKIPSPIN        # Don't run witness on spinlocks for speed
 
+options		HZ=100
 options 	SMP
 options 	SCHED_ULE
 options		NUMA
 options 	PREEMPTION
-options 	INET
-options 	INET6
-options		TCP_OFFLOAD
-options		KERN_TLS
 options		VIMAGE
-options 	GEOM_LABEL		# Provides labelization
 # COMPAT_FREEBSD32 is required for linux.ko which is required for poudriere
 options		COMPAT_FREEBSD32
 # COMPAT_FREEBSD11 is required for Go
@@ -21,7 +17,7 @@ options 	COMPAT_FREEBSD11	# Compatible with FreeBSD11
 options 	COMPAT_FREEBSD12	# Compatible with FreeBSD12
 options 	COMPAT_FREEBSD13	# Compatible with FreeBSD13
 options 	COMPAT_FREEBSD14	# Compatible with FreeBSD14
-options 	SCSI_DELAY=1000
+options		COMPAT_LINUXKPI
 options 	KTRACE
 options 	STACK
 options 	_KPOSIX_PRIORITY_SCHEDULING
@@ -29,49 +25,189 @@ options 	PRINTF_BUFR_SIZE=128
 options 	CAPABILITY_MODE		# Capsicum capability mode
 options 	CAPABILITIES		# Capsicum capabilities
 options 	MAC			# TrustedBSD MAC Framework
+options		MAC_NTPD
+options		MAC_PORTACL
 #options 	KDTRACE_FRAME		# Ensure frames are compiled in
 #options 	KDTRACE_HOOKS		# Kernel DTrace hooks
 #options 	DDB_CTF			# Kernel ELF linker loads CTF data
 options 	INCLUDE_CONFIG_FILE
-options		ZFS
-options		MSDOSFS
-options		PROCFS
-options		PSEUDOFS
-options		FFS
-options		SOFTUPDATES
-options		UFS_ACL
-options		UFS_DIRHASH
 options		RCTL
 options		RACCT
 options		RACCT_DEFAULT_TO_DISABLED
-options		FIB_ALGO
-options 	CC_CUBIC		# include CUBIC congestion control
-options		TCP_BLACKBOX
-options		TCP_HHOOK
-options		TCP_RFC7413
-options		NFSD
-options		NFSCL
 options		SYSVSHM
 options		SYSVMSG
 options		SYSVSEM
+options		GZIO
 options		ZSTDIO
+options		LIBICONV
+options		IMGACT_BINMISC
+options		EFIRT
+device		efirt
+device		efidev
+device		efirtc
+options		KBD_INSTALL_CDEV
+device		kbdmux
 
 options 	KDB
 options 	KDB_TRACE
 options 	KDB_UNATTENDED
 #options		ALT_BREAK_TO_DEBUGGER
 
+device		firmware
+device		nmdm
+device		mem
+device		ksyms
+device		zlib
+device		hwpmc
+options 	HWPMC_HOOKS		# Other necessary kernel hooks
+
+### System console
+
+device		vt
+device		vt_efifb
+device		kbdmux
+options		EVDEV_SUPPORT
+options		KBD_INSTALL_CDEV
+device		evdev
+device		uinput
+
+### USB
+
+device		usb
+device		usbhid
+device		hid
+device		hidbus
+device		hidmap
+device		hidraw
+options		HIDRAW_MAKE_UHID_ALIAS
+device		ohci
+device		uhci
+device		ehci
+device		xhci
+device		ukbd
+device		hkbd
+device		ums
+device		hms
+device		ums
+device		umass
+device		ucom
+device		uplcom
+device		uftdi
+
+### Storage
+
+options		ZFS
+options		FFS
+options		SOFTUPDATES
+options		UFS_ACL
+options		UFS_DIRHASH
+options 	UFS_EXTATTR
+options 	UFS_EXTATTR_AUTOSTART
+options 	UFS_GJOURNAL
+options 	AUTOFS
+options 	CD9660
+options 	CD9660_ICONV
+options		UDF
+options 	UDF_ICONV
+options		MSDOSFS
+options 	MSDOSFS_ICONV
+options		PROCFS
+options		FDESCFS
+options		PSEUDOFS
+options		NULLFS
+options		TMPFS
+
+options 	SCSI_DELAY=1000
+options 	GEOM_LABEL		# Provides labelization
+options 	GEOM_PART_APM		# Apple partitioning
+options 	GEOM_PART_BSD		# BSD disklabel
+options 	GEOM_PART_BSD64		# BSD disklabel64
+options 	GEOM_PART_EBR		# Extended Boot Records
+options 	GEOM_PART_GPT		# GPT partitioning
+options 	GEOM_PART_LDM		# Logical Disk Manager
+options 	GEOM_PART_MBR		# MBR partitioning
+
+device		nvme
+device		nda
+device		filemon
+device		scbus
+device		da
+device		cd
+device		ses
+device		pass
+options 	CAM_MAX_HIGHPOWER=4
+
+### Crypto
+
+options		IPSEC
+options		KERN_TLS
+options		KGSSAPI
+
+device		crypto
+device		cryptodev
+
+### Networking
+
+options 	INET
+options 	INET6
+options		NFSD
+options		NFSCL
+options 	NFSLOCKD		#Network Lock Manager
+options		TCP_SIGNATURE
+options		FIB_ALGO
+options 	CC_CUBIC
+options		TCP_BLACKBOX
+options		TCP_HHOOK
+options		TCP_RFC7413	# TCP Fast Open
+options		TCP_OFFLOAD
+options		NETLINK
+options		MROUTING
+options		ROUTE_MPATH
+options 	ACCEPT_FILTER_DATA
+options 	ACCEPT_FILTER_DNS
+options 	ACCEPT_FILTER_HTTP
+options		ACCEPT_FILTER_TLS
+
+options		NETGRAPH
+options 	NETGRAPH_ASYNC
+options 	NETGRAPH_BPF
+options 	NETGRAPH_BRIDGE
+options 	NETGRAPH_DEVICE
+options 	NETGRAPH_EIFACE
+options 	NETGRAPH_ETHER
+options 	NETGRAPH_IFACE
+options 	NETGRAPH_IP_INPUT
+options 	NETGRAPH_L2TP
+options 	NETGRAPH_KSOCKET
+options 	NETGRAPH_MPPC_COMPRESSION
+options 	NETGRAPH_MPPC_ENCRYPTION
+options 	NETGRAPH_PIPE
+options 	NETGRAPH_PPP
+options 	NETGRAPH_PPPOE
+options 	NETGRAPH_SOCKET
+options 	NETGRAPH_TCPMSS
+options 	NETGRAPH_TEE
+options 	NETGRAPH_VJC
+options 	NETGRAPH_VLAN
+
+device		wlan
+options 	IEEE80211_SUPPORT_TDMA
+device		wlan_wep
+device		wlan_ccmp
+device		wlan_tkip
+device		wlan_xauth
+device		wlan_amrr
+
+device		epair
+device		wg
+device		tuntap
+device		vlan
 device		loop
 device		ether
 device		bpf
-# KERN_TLS requires crypto
-device		crypto
-device		cryptodev
-device		nvme
 device		if_bridge
-device		filemon
-device		tuntap
-device		vlan
-device		nmdm
-device		epair
-device		wg
+device		vxlan
+device		netmap
+device		carp
+device		enc
+device		lagg

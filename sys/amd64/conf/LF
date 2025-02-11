@@ -9,24 +9,23 @@ include "../../conf/std.lf"
 makeoptions	DEBUG=-g		# Build kernel with gdb(1) debug symbols
 #makeoptions	WITH_CTF=1		# Run ctfconvert(1) for DTrace support
 
-options 	HWPMC_HOOKS
-
 # General amd64-specific options (MI options should go in std.lf).
+options 	EARLY_AP_STARTUP
+device		isa
+device		io
 device		acpi
 device		acpi_wmi
 options		IOMMU
 options		PCI_IOV
 device		pci
 device		uart
+device		uart_ns8250
 device		efirt
 device		aesni
 device		rdrand_rng
 device		cpufreq
 device		amdtemp
 device		amdsmn
-device		cxgbe
-device		ahci
-device		mps
 device		intpm
 device		smbus
 device		iicbus
@@ -34,35 +33,21 @@ device		iicbb
 device		iic
 device		ic
 device		iicsmb
+device		ichsmb
+device		amdsmb
+device		amdpm
+device		jedec_dimm
 device		cpuctl
-device		scbus
-device		da
 
-# USB
-device		usb
-device		usbhid
-device		hid
-device		hidbus
-device		ohci
-device		uhci
-device		ehci
-device		xhci
-device		ukbd
-device		hkbd
-device		ums
-device		umass
+# Network devices
+device		cxgbe
+device		cxgbev
 
-# LinuxKPI requires firmware
-device		firmware
-
-# System console
-device		vt
-device		vt_efifb
-device		kbdmux
-options		EVDEV_SUPPORT
-options		KBD_INSTALL_CDEV
-# evdev has to be in the kernel when EVDEV_SUPPORT is set or the build fails
-device		evdev
+# Storage devices
+device		ahci
+device		ada
+device		mps
+device		mpr
 
 # Xen domU support
 options		XENHVM
@@ -82,5 +67,8 @@ device		virtio_p9fs
 device		virtio_blk
 device		virtio_scsi
 device		virtio_balloon
+device		virtio_console
+device		virtio_random
+device		virtio_mmio
 device		vtnet
 
