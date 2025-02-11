@@ -74,3 +74,4 @@ device		tuntap
 device		vlan
 device		nmdm
 device		epair
+device		wg
