@@ -89,10 +89,12 @@ device		hkbd
 device		ums
 device		hms
 device		ums
+device		uhid
 device		umass
 device		ucom
 device		uplcom
 device		uftdi
+device		wmt
 
 ### Storage
 

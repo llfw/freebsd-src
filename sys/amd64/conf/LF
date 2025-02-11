@@ -8,6 +8,7 @@ include "../../conf/std.lf"
 
 makeoptions	DEBUG=-g		# Build kernel with gdb(1) debug symbols
 #makeoptions	WITH_CTF=1		# Run ctfconvert(1) for DTrace support
+makeoptions	MODULES_OVERRIDE=""
 
 # General amd64-specific options (MI options should go in std.lf).
 options 	EARLY_AP_STARTUP
