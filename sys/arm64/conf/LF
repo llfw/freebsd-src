@@ -119,6 +119,8 @@ nodevice	mmcsd
 device		iicbus
 device		mdio
 
+device		mii
+device		miibus
 device		genet			# Broadcom on RPi4
 device		dwcotg
 
