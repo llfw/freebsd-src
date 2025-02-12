@@ -27,14 +27,10 @@ device		cpufreq
 # Block devices
 device		scbus
 device		da
-
-# ATA/SCSI peripherals
-device		cd			# CD
-device		pass			# Passthrough device (direct ATA/SCSI access)
-
-#device		nvme			# base NVMe driver
+device		cd
+device		pass
+device		nvme			# base NVMe driver
 options 	NVME_USE_NVD=0		# prefer the cam(4) based nda(4) driver
-#device		nvd			# expose NVMe namespaces as disks, depends on nvme
 
 # GPIO / PINCTRL
 device		gpio
@@ -49,7 +45,7 @@ device		gpioregulator
 #device		icee			# Generic IIC eeprom
 
 # Crypto accelerators
-#device		armv8crypto		# ARMv8 OpenCrypto module
+device		armv8crypto		# ARMv8 OpenCrypto module
 
 # SPI
 device		spibus
@@ -84,19 +80,7 @@ device		bpf		# Berkeley packet filter
 
 device		netmap			# netmap(4) support
 
-# USB support
 options 	USB_HOST_ALIGN=64	# Align usb buffers to cache line size.
-#device		ohci			# OHCI USB interface
-#device		uhci			# UHCI USB interface
-#device		ehci			# EHCI USB interface (USB 2.0)
-device		xhci			# XHCI USB interface (USB 3.0)
-device		usb			# USB Bus (required)
-#device		ukbd			# Keyboard
-#device		umass			# Disks/Mass storage - Requires scbus and da
-
-# HID support
-#options 	HID_DEBUG		# enable debug msgs
-#device		hid			# Generic HID support
 
 # Firmware
 device		mmio_sram		# Generic on-chip SRAM
@@ -132,16 +116,11 @@ options 	MMCCAM
 nodevice	mmc
 nodevice	mmcsd
 
-# Net80211 debugging
-#nooptions	IEEE80211_DEBUG
-
-# USB debugging
-#nooptions	USB_DEBUG
-#nooptions	HID_DEBUG
-
-# CAM debugging
-#nooptions	CAMDEBUG
-#nooptions	CAM_DEBUG_FLAGS
-
 device		iicbus
 device		mdio
+
+device		genet			# Broadcom on RPi4
+device		dwcotg
+
+# DTBs
+makeoptions	MODULES_EXTRA+="dtb/rpi"
