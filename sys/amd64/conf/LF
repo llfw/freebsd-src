@@ -43,6 +43,7 @@ device		cpuctl
 device		coretemp
 
 # Network devices
+device		iflib
 device		cxgbe
 device		cxgbev
 device		ix
