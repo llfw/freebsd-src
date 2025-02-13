@@ -35,14 +35,18 @@ device		iic
 device		ic
 device		iicsmb
 device		ichsmb
+device		ismt
 device		amdsmb
 device		amdpm
 device		jedec_dimm
 device		cpuctl
+device		coretemp
 
 # Network devices
 device		cxgbe
 device		cxgbev
+device		ix
+device		igc
 
 # Storage devices
 device		ahci
