@@ -687,7 +687,6 @@ struct pf_keth_ruleset {
 		int			 open;
 		uint32_t		 ticket;
 	} active, inactive;
-	struct epoch_context	 epoch_ctx;
 	struct vnet		*vnet;
 	struct pf_keth_anchor	*anchor;
 };
@@ -1088,7 +1087,7 @@ struct pf_kstate {
 	u_int16_t		 state_flags;
 	u_int8_t		 timeout;
 	u_int8_t		 sync_state; /* PFSYNC_S_x */
-	u_int8_t		 sync_updates; /* XXX */
+	u_int8_t		 sync_updates;
 	u_int			 refs;
 	struct mtx		*lock;
 	TAILQ_ENTRY(pf_kstate)	 sync_list;
@@ -1615,6 +1614,7 @@ struct pf_pdesc {
 
 	struct pf_addr	*src;		/* src address */
 	struct pf_addr	*dst;		/* dst address */
+	u_int16_t	*pcksum;	/* proto cksum */
 	u_int16_t	*sport;
 	u_int16_t	*dport;
 	u_int16_t	 osport;
@@ -1662,6 +1662,7 @@ struct pf_pdesc {
 #define PFDESC_SCTP_ADD_IP	0x1000
 	u_int16_t	 sctp_flags;
 	u_int32_t	 sctp_initiate_tag;
+	u_int16_t	 sctp_dummy_sum;
 	struct pf_krule	*related_rule;
 
 	struct pf_sctp_multihome_jobs	sctp_multihome_jobs;
@@ -2647,7 +2648,7 @@ void			 pf_print_host(struct pf_addr *, u_int16_t, sa_family_t);
 
 void			 pf_step_into_anchor(struct pf_kanchor_stackframe *, int *,
 			    struct pf_kruleset **, int, struct pf_krule **,
-			    struct pf_krule **, int *);
+			    struct pf_krule **);
 int			 pf_step_out_of_anchor(struct pf_kanchor_stackframe *, int *,
 			    struct pf_kruleset **, int, struct pf_krule **,
 			    struct pf_krule **, int *);
