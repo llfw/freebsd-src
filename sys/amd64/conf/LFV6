@@ -1,9 +1,0 @@
-# le-fay.org IPv6-only kernel.
-
-cpu		HAMMER
-ident		LFV6
-makeoptions	WITHOUT_MODULES="ipfw"
-
-include "LF"
-
-nooptions	INET
