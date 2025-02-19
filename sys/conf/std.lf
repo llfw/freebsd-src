@@ -128,6 +128,7 @@ options 	GEOM_PART_EBR		# Extended Boot Records
 options 	GEOM_PART_GPT		# GPT partitioning
 options 	GEOM_PART_LDM		# Logical Disk Manager
 options 	GEOM_PART_MBR		# MBR partitioning
+options		GEOM_MIRROR
 
 device		nvme
 device		nda
