@@ -339,6 +339,7 @@ in_pcblbgroup_insert(struct inpcblbgroup *grp, struct inpcb *inp)
 		 * lookups until listen() has been called.
 		 */
 		LIST_INSERT_HEAD(&grp->il_pending, inp, inp_lbgroup_list);
+		grp->il_pendcnt++;
 	} else {
 		grp->il_inp[grp->il_inpcnt] = inp;
 
@@ -375,6 +376,8 @@ in_pcblbgroup_resize(struct inpcblbgrouphead *hdr,
 	CK_LIST_INSERT_HEAD(hdr, grp, il_list);
 	LIST_SWAP(&old_grp->il_pending, &grp->il_pending, inpcb,
 	    inp_lbgroup_list);
+	grp->il_pendcnt = old_grp->il_pendcnt;
+	old_grp->il_pendcnt = 0;
 	in_pcblbgroup_free(old_grp);
 	return (grp);
 }
@@ -435,7 +438,7 @@ in_pcbinslbgrouphash(struct inpcb *inp, uint8_t numa_domain)
 			return (ENOBUFS);
 		in_pcblbgroup_insert(grp, inp);
 		CK_LIST_INSERT_HEAD(hdr, grp, il_list);
-	} else if (grp->il_inpcnt == grp->il_inpsiz) {
+	} else if (grp->il_inpcnt + grp->il_pendcnt == grp->il_inpsiz) {
 		if (grp->il_inpsiz >= INPCBLBGROUP_SIZMAX) {
 			if (ratecheck(&lastprint, &interval))
 				printf("lb group port %d, limit reached\n",
@@ -499,6 +502,7 @@ in_pcbremlbgrouphash(struct inpcb *inp)
 		LIST_FOREACH(inp1, &grp->il_pending, inp_lbgroup_list) {
 			if (inp == inp1) {
 				LIST_REMOVE(inp, inp_lbgroup_list);
+				grp->il_pendcnt--;
 				inp->inp_flags &= ~INP_INLBGROUP;
 				return;
 			}
@@ -754,8 +758,9 @@ in_pcbbind(struct inpcb *inp, struct sockaddr_in *sin, int flags,
  * lsa can be NULL for IPv6.
  */
 int
-in_pcb_lport_dest(struct inpcb *inp, struct sockaddr *lsa, u_short *lportp,
-    struct sockaddr *fsa, u_short fport, struct ucred *cred, int lookupflags)
+in_pcb_lport_dest(const struct inpcb *inp, struct sockaddr *lsa,
+    u_short *lportp, struct sockaddr *fsa, u_short fport, struct ucred *cred,
+    int lookupflags)
 {
 	struct inpcbinfo *pcbinfo;
 	struct inpcb *tmpinp;
@@ -1121,7 +1126,18 @@ in_pcbconnect(struct inpcb *inp, struct sockaddr_in *sin, struct ucred *cred)
 		else
 			in_pcbinshash(inp);
 	}
+#ifdef ROUTE_MPATH
+	if (CALC_FLOWID_OUTBOUND) {
+		uint32_t hash_val, hash_type;
 
+		hash_val = fib4_calc_software_hash(inp->inp_laddr,
+		    inp->inp_faddr, 0, fport,
+		    inp->inp_socket->so_proto->pr_protocol, &hash_type);
+
+		inp->inp_flowid = hash_val;
+		inp->inp_flowtype = hash_type;
+	}
+#endif
 	if (anonport)
 		inp->inp_flags |= INP_ANONPORT;
 	return (0);
@@ -1132,8 +1148,8 @@ in_pcbconnect(struct inpcb *inp, struct sockaddr_in *sin, struct ucred *cred)
  * of connect. Take jails into account as well.
  */
 int
-in_pcbladdr(struct inpcb *inp, struct in_addr *faddr, struct in_addr *laddr,
-    struct ucred *cred)
+in_pcbladdr(const struct inpcb *inp, struct in_addr *faddr,
+    struct in_addr *laddr, struct ucred *cred)
 {
 	struct ifaddr *ifa;
 	struct sockaddr *sa;
@@ -1349,7 +1365,7 @@ done:
  * and port. These are not updated in the error case.
  */
 int
-in_pcbconnect_setup(struct inpcb *inp, struct sockaddr_in *sin,
+in_pcbconnect_setup(const struct inpcb *inp, struct sockaddr_in *sin,
     in_addr_t *laddrp, u_short *lportp, in_addr_t *faddrp, u_short *fportp,
     struct ucred *cred)
 {
@@ -1377,17 +1393,6 @@ in_pcbconnect_setup(struct inpcb *inp, struct sockaddr_in *sin,
 	lport = *lportp;
 	faddr = sin->sin_addr;
 	fport = sin->sin_port;
-#ifdef ROUTE_MPATH
-	if (CALC_FLOWID_OUTBOUND) {
-		uint32_t hash_val, hash_type;
-
-		hash_val = fib4_calc_software_hash(laddr, faddr, 0, fport,
-		    inp->inp_socket->so_proto->pr_protocol, &hash_type);
-
-		inp->inp_flowid = hash_val;
-		inp->inp_flowtype = hash_type;
-	}
-#endif
 	if (V_connect_inaddr_wild && !CK_STAILQ_EMPTY(&V_in_ifaddrhead)) {
 		/*
 		 * If the destination address is INADDR_ANY,
@@ -1502,6 +1507,7 @@ in_pcblisten(struct inpcb *inp)
 		INP_HASH_WLOCK(pcbinfo);
 		grp = in_pcblbgroup_find(inp);
 		LIST_REMOVE(inp, inp_lbgroup_list);
+		grp->il_pendcnt--;
 		in_pcblbgroup_insert(grp, inp);
 		INP_HASH_WUNLOCK(pcbinfo);
 	}

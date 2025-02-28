@@ -94,7 +94,6 @@ NFSCLSTATEMUTEX;
 int nfscl_inited = 0;
 struct nfsclhead nfsclhead;	/* Head of clientid list */
 
-static int nfscl_layoutcnt = 0;
 static int nfscl_getopen(struct nfsclownerhead *, struct nfsclopenhash *,
     u_int8_t *, int, u_int8_t *, u_int8_t *, u_int32_t,
     struct nfscllockowner **, struct nfsclopen **);
@@ -919,6 +918,8 @@ nfscl_getcl(struct mount *mp, struct ucred *cred, NFSPROC_T *p,
 		clp->nfsc_flags = NFSCLFLAGS_INITED;
 		clp->nfsc_delegcnt = 0;
 		clp->nfsc_deleghighwater = NFSCLDELEGHIGHWATER;
+		clp->nfsc_layoutcnt = 0;
+		clp->nfsc_layouthighwater = NFSCLLAYOUTHIGHWATER;
 		clp->nfsc_clientidrev = 1;
 		clp->nfsc_cbident = nfscl_nextcbident();
 		nfscl_fillclid(nmp->nm_clval, uuid, clp->nfsc_id,
@@ -2978,13 +2979,14 @@ tryagain2:
 		lyp = TAILQ_LAST(&clp->nfsc_layout, nfscllayouthead);
 		while (lyp != NULL) {
 			nlyp = TAILQ_PREV(lyp, nfscllayouthead, nfsly_list);
-			if (lyp->nfsly_timestamp < NFSD_MONOSEC &&
+			if ((lyp->nfsly_timestamp < NFSD_MONOSEC ||
+			     clp->nfsc_layoutcnt > clp->nfsc_layouthighwater) &&
 			    (lyp->nfsly_flags & (NFSLY_RECALL |
 			     NFSLY_RETONCLOSE)) == 0 &&
 			    lyp->nfsly_lock.nfslock_usecnt == 0 &&
 			    lyp->nfsly_lock.nfslock_lock == 0) {
 				NFSCL_DEBUG(4, "ret stale lay=%d\n",
-				    nfscl_layoutcnt);
+				    clp->nfsc_layoutcnt);
 				recallp = malloc(sizeof(*recallp),
 				    M_NFSLAYRECALL, M_NOWAIT);
 				if (recallp == NULL)
@@ -3952,6 +3954,59 @@ nfscl_docb(struct nfsrv_descript *nd, NFSPROC_T *p)
 				mtx_unlock(&tsep->nfsess_mtx);
 			}
 			NFSUNLOCKCLSTATE();
+			break;
+		case NFSV4OP_CBRECALLANY:
+			NFSM_DISSECT(tl, uint32_t *, 2 * NFSX_UNSIGNED);
+			i = fxdr_unsigned(int, *tl++);
+			j = fxdr_unsigned(int, *tl);
+			if (i < 0 || j != 1)
+				error = NFSERR_BADXDR;
+			if (error == 0) {
+				NFSM_DISSECT(tl, uint32_t *, NFSX_UNSIGNED);
+				j = fxdr_unsigned(int, *tl);
+				if (i < 100)
+					i = 100;
+				else if (i > 100000)
+					i = 100000;
+				NFSLOCKCLSTATE();
+				clp = nfscl_getclntsess(sessionid);
+				if (clp == NULL)
+					error = NFSERR_SERVERFAULT;
+				if (((j & NFSRCA4_RDATA_DLG) != 0 ||
+				    (j & NFSRCA4_WDATA_DLG) != 0) &&
+				    error == 0 && i <
+				    clp->nfsc_deleghighwater)
+					clp->nfsc_deleghighwater = i;
+				if (error == 0 &&
+				    ((!NFSHASFLEXFILE(clp->nfsc_nmp) &&
+				     (j & NFSRCA4_FILE_LAYOUT) != 0 &&
+				     i < clp->nfsc_layouthighwater) ||
+				     (NFSHASFLEXFILE(clp->nfsc_nmp) &&
+				     (j & (NFSRCA4_FF_LAYOUT_READ |
+				     NFSRCA4_FF_LAYOUT_RW)) != 0 &&
+				     i < clp->nfsc_layouthighwater)))
+					clp->nfsc_layouthighwater = i;
+				NFSUNLOCKCLSTATE();
+			}
+			break;
+		case NFSV4OP_CBNOTIFY:
+		case NFSV4OP_CBRECALLOBJAVAIL:
+		case NFSV4OP_CBNOTIFYLOCK:
+			/*
+			 * These callbacks are not necessarily optional,
+			 * so I think it is better to reply NFS_OK than
+			 * NFSERR_NOTSUPP.
+			 * All provide information for which the FreeBSD client
+			 * does not currently have a use.
+			 * I am not sure if any of these could be generated
+			 * by a NFSv4.1/4.2 server for this client?
+			 */
+			error = 0;
+			NFSCL_DEBUG(1, "unsupp callback %d\n", op);
+			break;
+		case NFSV4OP_CBPUSHDELEG:
+			error = NFSERR_REJECTDELEG;
+			NFSCL_DEBUG(1, "unsupp callback %d\n", op);
 			break;
 		default:
 			if (i == 0 && minorvers != NFSV4_MINORVERSION)
@@ -5119,7 +5174,7 @@ nfscl_newnode(vnode_t vp)
  * to the local clock time.
  */
 void
-nfscl_delegmodtime(vnode_t vp)
+nfscl_delegmodtime(struct vnode *vp, struct timespec *mtime)
 {
 	struct nfsclclient *clp;
 	struct nfscldeleg *dp;
@@ -5143,7 +5198,10 @@ nfscl_delegmodtime(vnode_t vp)
 	}
 	dp = nfscl_finddeleg(clp, np->n_fhp->nfh_fh, np->n_fhp->nfh_len);
 	if (dp != NULL && (dp->nfsdl_flags & NFSCLDL_WRITE)) {
-		nanotime(&dp->nfsdl_modtime);
+		if (mtime != NULL)
+			dp->nfsdl_modtime = *mtime;
+		else
+			nanotime(&dp->nfsdl_modtime);
 		dp->nfsdl_flags |= NFSCLDL_MODTIMESET;
 	}
 	NFSUNLOCKCLSTATE();
@@ -5286,7 +5344,7 @@ nfscl_layout(struct nfsmount *nmp, vnode_t vp, u_int8_t *fhp, int fhlen,
 			LIST_INSERT_HEAD(NFSCLLAYOUTHASH(clp, fhp, fhlen), lyp,
 			    nfsly_hash);
 			lyp->nfsly_timestamp = NFSD_MONOSEC + 120;
-			nfscl_layoutcnt++;
+			clp->nfsc_layoutcnt++;
 			nfsstatsv1.cllayouts++;
 		} else {
 			if (retonclose != 0)
@@ -5661,7 +5719,7 @@ nfscl_freelayout(struct nfscllayout *layp)
 		LIST_REMOVE(rp, nfsrecly_list);
 		free(rp, M_NFSLAYRECALL);
 	}
-	nfscl_layoutcnt--;
+	layp->nfsly_clp->nfsc_layoutcnt--;
 	nfsstatsv1.cllayouts--;
 	free(layp, M_NFSLAYOUT);
 }
