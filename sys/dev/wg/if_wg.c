@@ -2360,10 +2360,6 @@ wg_output(if_t ifp, struct mbuf *m, const struct sockaddr *dst, struct route *ro
 		xmit_err(ifp, m, NULL, AF_UNSPEC);
 		return (ret);
 	}
-	if (parsed_af != af) {
-		xmit_err(ifp, m, NULL, AF_UNSPEC);
-		return (EAFNOSUPPORT);
-	}
 	mtu = (ro != NULL && ro->ro_mtu > 0) ? ro->ro_mtu : if_getmtu(ifp);
 	return (wg_xmit(ifp, m, parsed_af, mtu));
 }
