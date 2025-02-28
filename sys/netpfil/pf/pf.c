@@ -8113,18 +8113,8 @@ pf_test_state_icmp(struct pf_kstate **state, struct pf_pdesc *pd,
 					    nk->port[didx], 1, pd->af, nk->af);
 					m_copyback(pd2.m, pd2.off, sizeof(uh),
 					    (c_caddr_t)&uh);
-					if (pd->af == AF_INET) {
-						struct pf_addr prefix, nsaddr;
-						int prefixlen = in6_mask2len(
-						    (struct in6_addr *)&(*state)->rule->dst.addr.v.a.mask, NULL);
-						if (prefixlen < 32)
-							prefixlen = 96;
-						PF_ACPY(&prefix, &nk->addr[pd2.sidx], nk->af);
-						PF_ACPY(&nsaddr, pd->src, pd->af);
-						inet_nat64(AF_INET6, pd->src, &nsaddr, &prefix,
-						    prefixlen);
-						PF_ACPY(&pd->nsaddr, &nsaddr, AF_INET6);
-					}
+					PF_ACPY(&pd->nsaddr,
+					    &nk->addr[pd2.sidx], nk->af);
 					PF_ACPY(&pd->ndaddr,
 					    &nk->addr[pd2.didx], nk->af);
 					pd->naf = nk->af;
