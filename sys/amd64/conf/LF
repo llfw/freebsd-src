@@ -64,6 +64,8 @@ device		xentimer
 # AT keyboard, for dryad
 device		atkbd
 device		atkbdc
+# VGA console
+device		vt_vga
 
 # VirtIO for bhyve/kvm guests
 options		P9FS
@@ -77,4 +79,3 @@ device		virtio_console
 device		virtio_random
 device		virtio_mmio
 device		vtnet
-
