@@ -20,3 +20,5 @@ options         ALTQ_HFSC
 options         ALTQ_CDNR
 options         ALTQ_PRIQ
 options         ALTQ_FAIRQ
+
+options		DUMMYNET
