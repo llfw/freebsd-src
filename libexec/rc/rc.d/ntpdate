@@ -14,6 +14,8 @@ rcvar="ntpdate_enable"
 stop_cmd=":"
 start_cmd="ntpdate_start"
 
+: ${ntpdate_svcj_options:="net_basic settime"}
+
 ntpdate_start()
 {
 	if [ -z "$ntpdate_hosts" -a -f "$ntpdate_config" ]; then
@@ -31,8 +33,4 @@ ntpdate_start()
 }
 
 load_rc_config $name
-
-# doesn't make sense to run in a svcj: privileged operations
-ntpdate_svcj="NO"
-
 run_rc_command "$1"

@@ -26,10 +26,9 @@ _ntp_old_driftfile="/var/db/ntpd.drift"
 
 pidfile="${_ntp_default_dir}/${name}.pid"
 
-load_rc_config $name
+: ${ntpd_svcj_options:="net_basic settime"}
 
-# doesn't make sense to run in a svcj: nojail keyword
-ntpd_svcj="NO"
+load_rc_config $name
 
 leapfile_is_disabled() {
 	# Return true (0) if automatic leapfile handling is disabled.
