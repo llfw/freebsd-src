@@ -1,6 +1,5 @@
 SUBDIR= include
 
-PACKAGE=	bsdconfig
 FILESDIR=	${LIBEXECDIR}/bsdconfig/dot
 FILES=		INDEX USAGE
 

@@ -1,6 +1,5 @@
 SUBDIR= include
 
-PACKAGE=	bsdconfig
 FILESDIR=	${LIBEXECDIR}/bsdconfig/020.docsinstall
 FILES=		INDEX USAGE
 

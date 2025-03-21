@@ -21,7 +21,6 @@ SUBDIR=	console \
 SUBDIR+= examples
 .endif
 
-PACKAGE=	bsdconfig
 FILESDIR=	${LIBEXECDIR}/bsdconfig
 FILES=		USAGE
 
