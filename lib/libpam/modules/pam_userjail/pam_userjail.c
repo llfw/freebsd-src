@@ -45,13 +45,13 @@ iovlist_create(void)
 static struct iovec *
 iovlist_iovs(iovlist_t *iovl)
 {
-	return iovl->iovs;
+	return (iovl->iovs);
 }
 
 static size_t
 iovlist_len(iovlist_t *iovl)
 {
-	return iovl->niovs;
+	return (iovl->niovs);
 }
 
 static void
@@ -83,7 +83,7 @@ iovlist_add(iovlist_t *iovl, char const *name, void const *value, size_t len)
 static int
 iovlist_add_string(iovlist_t *iovl, char const *name, char const *value)
 {
-	return iovlist_add(iovl, name, value, strlen(value) + 1);
+	return (iovlist_add(iovl, name, value, strlen(value) + 1));
 }
 
 PAM_EXTERN int
@@ -238,7 +238,7 @@ pam_sm_close_session(pam_handle_t *pamh, int flags,
 
 	(void)pamh;
 	(void)flags;
-	return PAM_SUCCESS;
+	return (PAM_SUCCESS);
 }
 
 PAM_MODULE_ENTRY("pam_userjail");
