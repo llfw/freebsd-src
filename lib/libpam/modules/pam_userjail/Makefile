@@ -7,7 +7,7 @@ PACKAGE=	runtime
 
 LIB=	pam_userjail
 SRCS=	pam_userjail.c
-#MAN=	pam_userjail.8
+MAN=	pam_userjail.8
 
 LIBADD+=	util jail
 

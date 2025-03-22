@@ -1,0 +1,62 @@
+.\" This source code is released into the public domain.
+.Dd March 22, 2025
+.Dt PAM_USERJAIL 8
+.Os
+.Sh NAME
+.Nm pam_userjail
+.Nd PAM module for user jails
+.Sh SYNOPSIS
+.Op Ar service-name
+.Pa session
+.Ar control-flag
+.Pa pam_userjail
+.Sh DESCRIPTION
+The
+.Nm
+session module for PAM implements user-based jails,
+allowing users to be placed into a jail upon login.
+.Pp
+A user will be jailed if their login class contains the "userjail" boolean
+capability.
+The jail's path will be set to
+.Pa / ,
+and host-specific information (hostname, hostid, and host UUID) will be
+inherited from the host.
+.Pp
+By default, the user's jail will have no access to System V IPC or networking.
+The following boolean capabilities can be added to the login class to enable
+additional permissions:
+.Bl -tag -width ".Cm userjail.sysvipcnew"
+.It Cm userjail.net4
+Allow access to IPv4 networking.
+.It Cm userjail.net6
+Allow access to IPv6 networking.
+.It Cm userjail.net_basic
+Equivalent to specifying both
+.Cm userjail.net4
+and
+.Cm userjail.net6 .
+.It Cm userjail.net_raw
+Allow access to raw sockets.
+This is required for
+.Xr ping 8
+and
+.Xr traceroute 8
+to work.
+.It Cm userjail.net_all
+Allow access to socket address families which are not jail aware.
+This implies
+.Cm userjail.net_raw .
+.It Cm userjail.mlock
+Allow use of
+.Xr mlock 2 ,
+subject to the usual restrictions on unprivileged memory locking.
+.It Cm userjail.sysvipc
+Allow access to the host's System V IPC namespace.
+.It Cm userjail.sysvipcnew
+Create a new System V IPC namespace for the user's jail.
+.El
+.Sh SEE ALSO
+.Xr login.conf 5 ,
+.Xr pam 3 ,
+.Xr pam.conf 5
