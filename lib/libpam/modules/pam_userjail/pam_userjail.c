@@ -96,11 +96,10 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 	login_cap_t *lc = NULL;
 	char jailname[sizeof("usrj-uid-9223372036854775808")] = {};
 	char errmsg[JAIL_ERRMSGLEN + 1] = {};
-	int inherit = JAIL_SYS_INHERIT;
+	int inherit = JAIL_SYS_INHERIT, new = JAIL_SYS_NEW;
 	int persist = 1;
 	iovlist_t *iovlist = NULL;
 	size_t update_skip = 0;
-	const char *cap;
 
 	if (argc) {
 		syslog(LOG_ERR, "pam_userjail: unknown argument \"%s\"",
@@ -109,7 +108,6 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 		goto out;
 	}
 
-	(void)pamh;
 	(void)flags;
 
 	retval = pam_get_user(pamh, &user, NULL);
@@ -153,40 +151,43 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 	iovlist_add(iovlist, "host", &inherit, sizeof(inherit));
 	++update_skip;
 
-	if ((cap = login_getcapstr(lc, "userjail.ip4", NULL, NULL)) != NULL) {
-		if (strcmp(cap, "inherit") == 0) {
-			iovlist_add(iovlist, "ip4", &inherit, sizeof(inherit));
-			++update_skip;
-		} else {
-			syslog(LOG_ERR, "pam_userjail: invalid value "
-			       "for userjail.ip4: %s", cap);
-			retval = PAM_SERVICE_ERR;
-			goto out;
-		}
+	if (login_getcapbool(lc, "userjail.net4", 0)
+	    || login_getcapbool(lc, "userjail.net_basic", 0)) {
+		iovlist_add(iovlist, "ip4", &inherit, sizeof(inherit));
+		++update_skip;
 	}
 
-	if ((cap = login_getcapstr(lc, "userjail.ip6", NULL, NULL)) != NULL) {
-		if (strcmp(cap, "inherit") == 0) {
-			iovlist_add(iovlist, "ip6", &inherit, sizeof(inherit));
-			++update_skip;
-		} else {
-			syslog(LOG_ERR, "pam_userjail: invalid value "
-			       "for userjail.ip6: %s", cap);
-			retval = PAM_SERVICE_ERR;
-			goto out;
-		}
+	if (login_getcapbool(lc, "userjail.net6", 0)
+	    || login_getcapbool(lc, "userjail.net_basic", 0)) {
+		iovlist_add(iovlist, "ip6", &inherit, sizeof(inherit));
+		++update_skip;
 	}
 
-	iovlist_add(iovlist,
-		login_getcapbool(lc, "userjail.allow.set_hostname", 0)
-		? "allow.set_hostname" : "allow.noset_hostname",
-		NULL, 0);
-	iovlist_add(iovlist,
-		login_getcapbool(lc, "userjail.allow.raw_sockets", 0)
-		? "allow.raw_sockets" : "allow.noraw_sockets",
-		NULL, 0);
+	if (login_getcapbool(lc, "userjail.sysvipc", 0)) {
+		iovlist_add(iovlist, "sysvmsg", &inherit, sizeof(inherit));
+		iovlist_add(iovlist, "sysvsem", &inherit, sizeof(inherit));
+		iovlist_add(iovlist, "sysvshm", &inherit, sizeof(inherit));
+		update_skip += 3;
+	} else if (login_getcapbool(lc, "userjail.sysvipcnew", 0)) {
+		iovlist_add(iovlist, "sysvmsg", &new, sizeof(new));
+		iovlist_add(iovlist, "sysvsem", &new, sizeof(new));
+		iovlist_add(iovlist, "sysvshm", &new, sizeof(new));
+		update_skip += 3;
+	}
 
 	/* These values should always be passed */
+
+	if (login_getcapbool(lc, "userjail.net_raw", 0)
+	    || login_getcapbool(lc, "userjail.net_all", 0))
+		iovlist_add(iovlist, "allow.raw_sockets", NULL, 0);
+
+	if (login_getcapbool(lc, "userjail.net_all", 0))
+		iovlist_add(iovlist, "allow.socket_af", NULL, 0);
+
+	if (login_getcapbool(lc, "userjail.mlock", 0))
+		iovlist_add(iovlist, "allow.mlock", NULL, 0);
+
+	iovlist_add(iovlist, "allow.noset_hostname", NULL, 0);
 
 	snprintf(jailname, sizeof(jailname), "usrj-uid-%" PRId64,
 		 (int64_t)pwd->pw_uid);
@@ -201,7 +202,7 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 	retval = jail_set(iovlist_iovs(iovlist), iovlist_len(iovlist),
 			  JAIL_CREATE | JAIL_ATTACH);
 
-	if (retval == -1 && errno == EEXIST)
+	if (retval < 0 && errno == EEXIST)
 		retval = jail_set(iovlist_iovs(iovlist) + (update_skip * 2),
 				  iovlist_len(iovlist) - (update_skip * 2),
 				  JAIL_UPDATE | JAIL_ATTACH);
