@@ -8030,22 +8030,8 @@ pf_test_state_icmp(struct pf_kstate **state, struct pf_pdesc *pd,
 					    pd->ip_sum, &dummy_cksum, &nk->addr[pd2.didx],
 					    nk->port[didx], 1, pd->af, nk->af);
 					m_copyback(pd2.m, pd2.off, 8, (c_caddr_t)&th);
-					PF_ACPY(&pd->nsaddr,
-					    &nk->addr[pd2.sidx], nk->af);
-					if (nk->af == AF_INET) {
-						pd->proto = IPPROTO_ICMP;
-					} else {
-						pd->proto = IPPROTO_ICMPV6;
-						/*
-						 * IPv4 becomes IPv6 so we must
-						 * put IPv4 src addr to least
-						 * 32bits in IPv6 address to
-						 * keep traceroute/icmp
-						 * working.
-						 */
-						pd->nsaddr.addr32[3] =
-						    pd->src->addr32[0];
-					}
+					PF_ACPY(&pd->nsaddr, &nk->addr[pd2.sidx],
+					    nk->af);
 					PF_ACPY(&pd->ndaddr,
 					    &nk->addr[pd2.didx], nk->af);
 					if (nk->af == AF_INET) {
@@ -8180,20 +8166,6 @@ pf_test_state_icmp(struct pf_kstate **state, struct pf_pdesc *pd,
 					    (c_caddr_t)&uh);
 					PF_ACPY(&pd->nsaddr,
 					    &nk->addr[pd2.sidx], nk->af);
-					if (nk->af == AF_INET) {
-						pd->proto = IPPROTO_ICMP;
-					} else {
-						pd->proto = IPPROTO_ICMPV6;
-						/*
-						 * IPv4 becomes IPv6 so we must
-						 * put IPv4 src addr to least
-						 * 32bits in IPv6 address to
-						 * keep traceroute/icmp
-						 * working.
-						 */
-						pd->nsaddr.addr32[3] =
-						    pd->src->addr32[0];
-					}
 					PF_ACPY(&pd->ndaddr,
 					    &nk->addr[pd2.didx], nk->af);
 					if (nk->af == AF_INET) {
@@ -8471,6 +8443,7 @@ pf_test_state_icmp(struct pf_kstate **state, struct pf_pdesc *pd,
 					    &nk->addr[didx], pd->af,
 					    nk->af))
 						return (PF_DROP);
+					pd->proto = IPPROTO_ICMPV6;
 					if (pf_translate_icmp_af(nk->af, iih))
 						return (PF_DROP);
 					if (virtual_type == htons(ICMP_ECHO) &&
@@ -8480,16 +8453,6 @@ pf_test_state_icmp(struct pf_kstate **state, struct pf_pdesc *pd,
 					    (c_caddr_t)iih);
 					PF_ACPY(&pd->nsaddr,
 					    &nk->addr[pd2.sidx], nk->af);
-					pd->proto = IPPROTO_ICMPV6;
-					/*
-					 * IPv4 becomes IPv6 so we must
-					 * put IPv4 src addr to least
-					 * 32bits in IPv6 address to
-					 * keep traceroute/icmp
-					 * working.
-					 */
-					pd->nsaddr.addr32[3] =
-					    pd->src->addr32[0];
 					PF_ACPY(&pd->ndaddr,
 					    &nk->addr[pd2.didx], nk->af);
 					/*
