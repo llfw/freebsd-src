@@ -100,6 +100,7 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 	int persist = 1;
 	iovlist_t *iovlist = NULL;
 	size_t update_skip = 0;
+	const char *cap;
 
 	if (argc) {
 		syslog(LOG_ERR, "pam_userjail: unknown argument \"%s\"",
@@ -152,11 +153,38 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 	iovlist_add(iovlist, "host", &inherit, sizeof(inherit));
 	++update_skip;
 
-	iovlist_add(iovlist, "ip4", &inherit, sizeof(inherit));
-	++update_skip;
+	if ((cap = login_getcapstr(lc, "userjail.ip4", NULL, NULL)) != NULL) {
+		if (strcmp(cap, "inherit") == 0) {
+			iovlist_add(iovlist, "ip4", &inherit, sizeof(inherit));
+			++update_skip;
+		} else {
+			syslog(LOG_ERR, "pam_userjail: invalid value "
+			       "for userjail.ip4: %s", cap);
+			retval = PAM_SERVICE_ERR;
+			goto out;
+		}
+	}
 
-	iovlist_add(iovlist, "ip6", &inherit, sizeof(inherit));
-	++update_skip;
+	if ((cap = login_getcapstr(lc, "userjail.ip6", NULL, NULL)) != NULL) {
+		if (strcmp(cap, "inherit") == 0) {
+			iovlist_add(iovlist, "ip6", &inherit, sizeof(inherit));
+			++update_skip;
+		} else {
+			syslog(LOG_ERR, "pam_userjail: invalid value "
+			       "for userjail.ip6: %s", cap);
+			retval = PAM_SERVICE_ERR;
+			goto out;
+		}
+	}
+
+	iovlist_add(iovlist,
+		login_getcapbool(lc, "userjail.allow.set_hostname", 0)
+		? "allow.set_hostname" : "allow.noset_hostname",
+		NULL, 0);
+	iovlist_add(iovlist,
+		login_getcapbool(lc, "userjail.allow.raw_sockets", 0)
+		? "allow.raw_sockets" : "allow.noraw_sockets",
+		NULL, 0);
 
 	/* These values should always be passed */
 
