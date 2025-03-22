@@ -26,6 +26,66 @@
 #include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
 
+typedef struct {
+	struct iovec *iovs;
+	size_t niovs;
+} iovlist_t;
+
+static iovlist_t *
+iovlist_create(void)
+{
+	iovlist_t *ret;
+
+	if ((ret = calloc(1, sizeof(*ret))) == NULL)
+		return (NULL);
+
+	return (ret);
+}
+
+static struct iovec *
+iovlist_iovs(iovlist_t *iovl)
+{
+	return iovl->iovs;
+}
+
+static size_t
+iovlist_len(iovlist_t *iovl)
+{
+	return iovl->niovs;
+}
+
+static void
+iovlist_free(iovlist_t *iovl)
+{
+	free(iovl->iovs);
+	free(iovl);
+}
+
+static int
+iovlist_add(iovlist_t *iovl, char const *name, void const *value, size_t len)
+{
+	struct iovec *iovs = NULL;
+
+	iovs = realloc(iovl->iovs, sizeof(struct iovec) * (iovl->niovs + 2));
+	if (iovs == NULL)
+		return (-1);
+
+	iovl->iovs = iovs;
+	iovl->iovs[iovl->niovs].iov_base = __DECONST(char *, name);
+	iovl->iovs[iovl->niovs].iov_len = strlen(name) + 1;
+	iovl->iovs[iovl->niovs + 1].iov_base = __DECONST(void *, value);
+	iovl->iovs[iovl->niovs + 1].iov_len = len;
+	iovl->niovs += 2;
+
+	return (0);
+}
+
+static int
+iovlist_add_string(iovlist_t *iovl, char const *name, char const *value)
+{
+	return iovlist_add(iovl, name, value, strlen(value) + 1);
+}
+
 PAM_EXTERN int
 pam_sm_open_session(pam_handle_t *pamh, int flags,
 	int argc, const char *argv[])
@@ -38,19 +98,8 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 	char errmsg[JAIL_ERRMSGLEN + 1] = {};
 	int inherit = JAIL_SYS_INHERIT;
 	int persist = 1;
-	size_t nvecs = 0;
-#define IOV(x) { __DECONST(char *, x), sizeof(x) }
-	struct iovec jailv[] = {
-		IOV("path"),	IOV("/"),
-		IOV("persist"),	{ &persist, sizeof(persist) },
-		IOV("host"),	{ &inherit, sizeof(inherit) },
-		IOV("ip4"),	{ &inherit, sizeof(inherit) },
-		IOV("ip6"),	{ &inherit, sizeof(inherit) },
-		IOV("name"),	{ jailname, sizeof(jailname) },
-		IOV("errmsg"),	IOV(errmsg),
-	};
-#undef IOV
-
+	iovlist_t *iovlist = NULL;
+	size_t update_skip = 0;
 
 	if (argc) {
 		syslog(LOG_ERR, "pam_userjail: unknown argument \"%s\"",
@@ -63,10 +112,13 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 	(void)flags;
 
 	retval = pam_get_user(pamh, &user, NULL);
-	if (retval != PAM_SUCCESS)
+	if (retval != PAM_SUCCESS) {
+		syslog(LOG_ERR, "pam_userjail: pam_get_user() failed");
 		goto out;
+	}
 
 	if ((pwd = getpwnam(user)) == NULL) {
+		syslog(LOG_ERR, "pam_userjail: user unknown: %s", user);
 		retval = PAM_USER_UNKNOWN;
 		goto out;
 	}
@@ -84,20 +136,47 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 		goto out;
 	}
 
-	snprintf(jailname, sizeof(jailname), "usrj-uid-%" PRId64,
-		 (int64_t)pwd->pw_uid);
-
-	nvecs = sizeof(jailv) / sizeof(*jailv);
-	retval = jail_set(jailv, nvecs, JAIL_CREATE | JAIL_ATTACH);
-
-	if (retval == -1 && errno == EEXIST) {
-		printf("creating the jail failed, updating instead\n");
-		retval = jail_set(jailv + 10, nvecs - 10, JAIL_UPDATE | JAIL_ATTACH);
+	if ((iovlist = iovlist_create()) == NULL) {
+		syslog(LOG_ERR, "pam_userjail: out of memory");
+		retval = PAM_SERVICE_ERR;
+		goto out;
 	}
 
-	printf("pam_userjail is here, jail=[%s], i am %d\n", jailname, (int)getuid());
-	for (size_t i = 0; i < sizeof(jailv) / sizeof(struct iovec); ++i)
-		printf("jail param: [%s] %d\n", (const char *)jailv[i].iov_base, (int)jailv[i].iov_len);
+	/* These are the values we want to skip when updating. */
+	iovlist_add_string(iovlist, "path", "/");
+	++update_skip;
+
+	iovlist_add(iovlist, "persist", &persist, sizeof(persist));
+	++update_skip;
+
+	iovlist_add(iovlist, "host", &inherit, sizeof(inherit));
+	++update_skip;
+
+	iovlist_add(iovlist, "ip4", &inherit, sizeof(inherit));
+	++update_skip;
+
+	iovlist_add(iovlist, "ip6", &inherit, sizeof(inherit));
+	++update_skip;
+
+	/* These values should always be passed */
+
+	snprintf(jailname, sizeof(jailname), "usrj-uid-%" PRId64,
+		 (int64_t)pwd->pw_uid);
+	iovlist_add_string(iovlist, "name", jailname);
+
+	iovlist_add(iovlist, "errmsg", errmsg, sizeof(errmsg));
+
+	/*
+	 * Try to create the jail first; if it already exists, update/attach
+	 * instead.
+	 */
+	retval = jail_set(iovlist_iovs(iovlist), iovlist_len(iovlist),
+			  JAIL_CREATE | JAIL_ATTACH);
+
+	if (retval == -1 && errno == EEXIST)
+		retval = jail_set(iovlist_iovs(iovlist) + (update_skip * 2),
+				  iovlist_len(iovlist) - (update_skip * 2),
+				  JAIL_UPDATE | JAIL_ATTACH);
 
 	if (retval < 0) {
 		syslog(LOG_ERR, "pam_userjail: jail_set failed: %m (%s)",
@@ -111,6 +190,9 @@ pam_sm_open_session(pam_handle_t *pamh, int flags,
 out:
 	if (lc)
 		login_close(lc);
+
+	if (iovlist)
+		iovlist_free(iovlist);
 
 	return (retval);
 }
